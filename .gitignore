@@ -1,4 +1,3 @@
 scripts/
-*.db
 .env
 data/csvs
