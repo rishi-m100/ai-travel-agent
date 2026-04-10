@@ -1,44 +1,45 @@
-✈️ Overview
-Mindy is an AI travel-planning agent that takes user specifications and constraints into account when planning an itinerary
-Mindy-Bench is a synthetic benchmark designed to evaluate AI travel-planning agents. Unlike existing benchmarks that rely on live web data—which suffers from price fluctuations and "link rot"—Mindy-Bench provides a deterministic environment. This ensures that agent performance can be measured consistently and reproducibly against a verified ground-truth dataset of flights, hotels, and activities.
+##✈️ Overview
+**Mindy is an AI travel-planning agent that takes user specifications and constraints into account when planning an itinerary
+**Mindy-Bench is a synthetic benchmark designed to evaluate AI travel-planning agents. Unlike existing benchmarks that rely on live web data—which suffers from price fluctuations and "link rot"—Mindy-Bench provides a deterministic environment. This ensures that agent performance can be measured consistently and reproducibly against a verified ground-truth dataset of flights, hotels, and activities.
 
-📊 Benchmark Key Features
-Static Dataset: Includes 200,000+ flight records, 1,000+ hotels, and ~3,000 activities across 50+ US cities.
+## ✈️ Project Overview
 
-Multi-Tier Tasks: 10+ tasks ranging from Easy (single-objective retrieval) to Hard (long-horizon planning and multi-turn reasoning).
+Current AI travel agents struggle with reproducibility because real-world APIs (flights, hotels) change constantly. **Mindy-Bench** fixes this by providing:
+* **Static Dataset:** 200,000+ flight records, 1,000+ hotels, and ~3,000 activities.
+* **Verifiable Ground Truth:** 10+ benchmark tasks with pre-calculated optimal itineraries.
+* **Multi-Tier Difficulty:** Tasks ranging from simple single-objective retrieval to complex long-horizon planning.
 
-Scoring Metrics: * TSR (Task Success Rate): Binary pass/fail for valid itineraries.
+## 📊 Benchmark Framework
 
-CS (Constraint Satisfaction): Percentage of user requirements met.
+### Evaluation Metrics
+Performance is evaluated across four independent metrics:
+1.  **Task Success Rate (TSR):** Percentage of tasks resulting in a fully valid, grounded itinerary.
+2.  **Constraint Satisfaction (CS):** Proportion of explicit and implicit user requirements met.
+3.  **Budget Efficiency (BE):** How close the agent's cost is to the verified optimal cost.
+4.  **Logistics Score (LS):** Deductions for inconsistencies (e.g., scheduling conflicts or unavailable hotels).
 
-BE (Budget Efficiency): Proximity to the optimal cost.
+### Task Distribution
+| Difficulty | Tasks | Focus |
+| :--- | :--- | :--- |
+| **Easy** | 4 | Single-objective reasoning (e.g., "Find the cheapest flight"). |
+| **Medium** | 4 | Multi-constraint optimization (e.g., "Weekend in Miami under $800"). |
+| **Hard** | 2 | Long-horizon planning and multi-turn clarifying questions. |
 
-LS (Logistics Score): Penalties for logical inconsistencies or hallucinations.
+## 🤖 Agent Implementation
 
-🤖 Agent Implementation
-The repository contains an autonomous agent capable of:
+The repository also includes an autonomous agent built to navigate the Mindy-Bench environment.
+* **SQL Tool Calling:** The agent translates natural language into SQL queries to interact with the `.db` synthetic database.
+* **Constraint Parsing:** Automatically identifies hard and soft constraints from user prompts.
+* **Current Status:** Tool calling is functional for flight data; hotel and activity tool integration is in progress.
 
-Natural Language Processing: Parsing user prompts into formal constraints.
+## 🛠️ Tech Stack
+* **Language:** Python
+* **Database:** SQLite (`.db` format)
+* **Models:** LLM-based agents with tool-calling capabilities.
 
-Tool Calling: Dynamically executing SQL queries against a .db formatted synthetic database.
+## 🚀 Getting Started
 
-Constraint Optimization: Balancing trade-offs between budget, timing, and preferences (e.g., "cheapest flight" vs. "specific amenities").
-
-🛠️ Tech Stack
-Language: Python
-
-Database: SQLite (.db format for reproducibility)
-
-LLM Integration: Tool-calling and orchestration for agentic workflows.
-
-Frameworks: Loosely based on principles from TravelBench and WebArena.
-
-🚀 Getting Started
-Clone the Repository:
-
-Bash
-
-git clone https://github.com/rishi-m100/mindy.git
-Database Setup: Ensure the synthetic travel database is initialized in the /data directory.
-
-Run Evaluation: Execute the evaluation script to test the agent against the 10 defined benchmark tasks.
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/rishi-m100/mindy.git](https://github.com/rishi-m100/mindy.git)
+   cd mindy
