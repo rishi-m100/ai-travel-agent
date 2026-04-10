@@ -1,2 +1,4 @@
-csvs_world/
+scripts/
 *.db
+.env
+data/csvs
