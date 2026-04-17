@@ -172,3 +172,43 @@ TOOL_SCHEMAS = [
         }
     }
 ]
+
+CONSTRAINT_PARSER_TOOL = {
+    "name": "extract_constraints",
+    "description": (
+        "Extract structured travel constraints from the user's message. "
+        "Categorise every requirement into hard, soft, or assumptions."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "hard": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Non-negotiable requirements (dates, origin, destination, "
+                    "budget ceiling, number of travellers, etc.)"
+                ),
+            },
+            "soft": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Preferences that are nice-to-have but not deal-breakers "
+                    "(amenities, activity types, airline preference, hotel "
+                    "tier, etc.)"
+                ),
+            },
+            "assumptions": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": (
+                    "Things inferred but not explicitly stated by the user "
+                    "(e.g. 'assumed year is 2025', 'assuming round-trip', "
+                    "'assuming 1 traveller')."
+                ),
+            },
+        },
+        "required": ["hard", "soft", "assumptions"],
+    },
+}
