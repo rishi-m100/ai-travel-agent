@@ -29,11 +29,13 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "search_hotels",
-        "description": "Search for hotels in a specific city. Returns hotels sorted by price cheapest first.",
+        "description": "Search for hotels in a specific city. Returns hotels sorted by price cheapest first. Pass check_in/check_out dates to filter by availability.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "city": {"type": "string", "description": "City name or airport IATA code"},
+                "check_in": {"type": "string", "description": "Check-in date in YYYY-MM-DD format (filters to available hotels)"},
+                "check_out": {"type": "string", "description": "Check-out date in YYYY-MM-DD format (filters to available hotels)"},
                 "max_price": {"type": "number", "description": "Optional maximum price per night in USD"},
                 "tier": {"type": "string", "description": "Optional hotel tier (e.g. 'budget', 'luxury')"},
                 "min_rating": {"type": "number", "description": "Optional minimum rating (e.g. 4.0)"},
@@ -56,12 +58,13 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "search_activities",
-        "description": "Search for activities/attractions in a city. Returns activities sorted by cost cheapest first.",
+        "description": "Search for activities/attractions in a city. Returns activities sorted by cost cheapest first. Pass day_of_week to filter by open days.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "city": {"type": "string", "description": "City name or airport IATA code"},
                 "category": {"type": "string", "description": "Optional category (e.g. 'Museum', 'Outdoors')"},
+                "day_of_week": {"type": "string", "description": "Optional day of week to filter by (e.g. 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')"},
                 "max_price": {"type": "number", "description": "Optional maximum cost in USD"},
                 "min_rating": {"type": "number", "description": "Optional minimum rating (e.g. 4.5)"},
                 "accessible_only": {"type": "boolean", "description": "If true, only return wheelchair-accessible activities"},
@@ -104,24 +107,57 @@ TOOL_SCHEMAS = [
     },
     {
         "name": "submit_itinerary",
-        "description": "Submit the final itinerary or ask a clarifying question to the user. This MUST be the final tool call.",
+        "description": "Submit the final itinerary or ask a clarifying question to the user. This MUST be the final tool call. Each selected item must include a brief reason explaining why it was chosen.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "flights": {
                     "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Selected flight IDs"
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string", "description": "Flight ID (e.g. 'FL00000001')"},
+                            "reason": {"type": "string", "description": "Brief reason this flight was chosen (e.g. 'Cheapest nonstop option departing in the morning')"}
+                        },
+                        "required": ["id", "reason"]
+                    },
+                    "description": "Selected flights with reasons"
                 },
                 "hotels": {
                     "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Selected hotel IDs"
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string", "description": "Hotel ID (e.g. 'HT00001')"},
+                            "reason": {"type": "string", "description": "Brief reason this hotel was chosen (e.g. 'Best rated luxury hotel under $300/night')"}
+                        },
+                        "required": ["id", "reason"]
+                    },
+                    "description": "Selected hotels with reasons"
                 },
                 "activities": {
                     "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Selected activity IDs"
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string", "description": "Activity ID (e.g. 'AC000001')"},
+                            "reason": {"type": "string", "description": "Brief reason this activity was chosen (e.g. 'Highly rated outdoor adventure matching user interests')"}
+                        },
+                        "required": ["id", "reason"]
+                    },
+                    "description": "Selected activities with reasons"
+                },
+                "check_in": {
+                    "type": "string",
+                    "description": "Hotel check-in date in YYYY-MM-DD format"
+                },
+                "check_out": {
+                    "type": "string",
+                    "description": "Hotel check-out date in YYYY-MM-DD format"
+                },
+                "hotel_nights": {
+                    "type": "integer",
+                    "description": "Number of nights at hotel"
                 },
                 "total_cost": {
                     "type": "number",

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import sqlite3
 from pathlib import Path
@@ -150,6 +152,8 @@ def get_flight_details(flight_id: str) -> dict | None:
 
 def search_hotels(
     city: str,
+    check_in: str | None = None,
+    check_out: str | None = None,
     max_price: float | None = None,
     tier: str | None = None,
     min_rating: float | None = None,
@@ -157,14 +161,30 @@ def search_hotels(
     max_results: int = 10,
 ) -> list[dict]:
     city = _norm(city)
-    query = """
-        SELECT h.hotel_id, h.name, h.city, h.airport_iata,
-               h.brand, h.tier, h.price_per_night, h.rating,
-               h.num_reviews, h.amenities, h.distance_miles
-        FROM hotels h
-        WHERE LOWER(h.city) = LOWER(?) OR UPPER(h.airport_iata) = UPPER(?)
-    """
-    params = [city, city]
+
+    # When availability dates are provided, JOIN against hotel_availability
+    # to only return hotels with rooms on the requested dates.
+    if check_in and check_out:
+        query = """
+            SELECT DISTINCT h.hotel_id, h.name, h.city, h.airport_iata,
+                   h.brand, h.tier, h.price_per_night, h.rating,
+                   h.num_reviews, h.amenities, h.distance_miles
+            FROM hotels h
+            JOIN hotel_availability ha ON h.hotel_id = ha.hotel_id
+            WHERE (LOWER(h.city) = LOWER(?) OR UPPER(h.airport_iata) = UPPER(?))
+              AND ha.check_in <= ? AND ha.check_out >= ?
+              AND ha.rooms_left > 0
+        """
+        params = [city, city, check_in, check_out]
+    else:
+        query = """
+            SELECT h.hotel_id, h.name, h.city, h.airport_iata,
+                   h.brand, h.tier, h.price_per_night, h.rating,
+                   h.num_reviews, h.amenities, h.distance_miles
+            FROM hotels h
+            WHERE LOWER(h.city) = LOWER(?) OR UPPER(h.airport_iata) = UPPER(?)
+        """
+        params = [city, city]
 
     if max_price is not None:
         query += " AND h.price_per_night <= ?"
@@ -200,6 +220,7 @@ def get_hotel_details(hotel_id: str) -> dict | None:
 def search_activities(
     city: str,
     category: str | None = None,
+    day_of_week: str | None = None,
     max_price: float | None = None,
     min_rating: float | None = None,
     accessible_only: bool = False,
@@ -209,15 +230,20 @@ def search_activities(
     query = """
         SELECT a.activity_id, a.name, a.city, a.category,
                a.duration_hrs, a.cost, a.rating,
-               a.open_time, a.close_time, a.tags
+               a.open_time, a.close_time, a.days_open, a.tags
         FROM activities a
-        WHERE LOWER(a.city) = LOWER(?) OR UPPER(a.airport_iata) = UPPER(?)
+        WHERE (LOWER(a.city) = LOWER(?) OR UPPER(a.airport_iata) = UPPER(?))
     """
     params = [city, city]
 
     if category is not None:
         query += " AND LOWER(a.category) = LOWER(?)"
         params.append(category)
+
+    # Filter by day of week — days_open is stored as a JSON array like '["Mon","Tue",...]'
+    if day_of_week is not None:
+        query += " AND a.days_open LIKE ?"
+        params.append(f'%"{day_of_week}"%')
 
     if max_price is not None:
         query += " AND a.cost <= ?"

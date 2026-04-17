@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+import json
 import sys
 from pathlib import Path
 
@@ -24,9 +25,14 @@ def chat():
         return jsonify({"error": "Prompt cannot be empty"}), 400
         
     try:
-        # call the agent
+        # call the agent — run_agent returns a JSON string,
+        # so parse it to avoid double-encoding in jsonify
         result = run_agent(user_message, verbose=True)
-        return jsonify({"result": result})
+        try:
+            parsed = json.loads(result)
+        except (json.JSONDecodeError, TypeError):
+            parsed = {"result": result}
+        return jsonify(parsed)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

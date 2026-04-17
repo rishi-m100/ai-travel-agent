@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindy — AI Travel Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Fira+Code:wght@400;500&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:           #090909;
+            --surface:      #121212;
+            --surface-2:    #1A1A1A;
+            --border:       #222222;
+            --border-soft:  #1C1C1C;
+            --accent:       #C8FF00;
+            --accent-dim:   rgba(200, 255, 0, 0.08);
+            --accent-glow:  rgba(200, 255, 0, 0.25);
+            --warm:         #FF6B35;
+            --blue:         #4D9FFF;
+            --green:        #00E599;
+            --pink:         #FF6B9D;
+            --text:         #EDEAE3;
+            --text-muted:   #555555;
+            --text-dim:     #333333;
+            --error:        #FF3D3D;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Crimson Pro', Georgia, serif;
+            background: var(--bg);
+            background-image:
+                linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+            background-size: 48px 48px;
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Page load stagger ── */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Header ── */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(9,9,9,0.92);
+            backdrop-filter: blur(12px);
+            animation: slideDown 0.5s ease both;
+        }
+
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 0.9rem;
+        }
+
+        .brand-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.6rem;
+            letter-spacing: 0.06em;
+            color: var(--accent);
+            line-height: 1;
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .brand-tag {
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse-dot 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
+            50% { opacity: 0.5; box-shadow: none; }
+        }
+
+        /* ── Main ── */
+        main {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 3.5rem 2rem 5rem;
+        }
+
+        .hero {
+            margin-bottom: 3rem;
+            animation: fadeUp 0.6s 0.1s ease both;
+        }
+
+        .hero-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.6rem;
+        }
+
+        .hero-title {
+            font-family: 'DM Serif Display', serif;
+            font-style: italic;
+            font-size: 2.8rem;
+            line-height: 1.15;
+            color: var(--text);
+        }
+
+        /* ── Input ── */
+        .input-block {
+            animation: fadeUp 0.6s 0.2s ease both;
+            margin-bottom: 2.5rem;
+        }
+
+        .input-shell {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .input-shell:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim), 0 0 20px var(--accent-glow);
+        }
+
+        #promptInput {
+            flex: 1;
+            background: var(--surface);
+            border: none;
+            padding: 1rem 1.4rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: var(--text);
+            outline: none;
+            caret-color: var(--accent);
+        }
+
+        #promptInput::placeholder { color: var(--text-dim); }
+
+        #submitBtn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 1rem 1.75rem;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.15rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: background 0.15s, box-shadow 0.15s;
+            flex-shrink: 0;
+        }
+
+        #submitBtn:hover { background: #d9ff33; box-shadow: 0 0 16px var(--accent-glow); }
+        #submitBtn:active { background: #b5e600; }
+        #submitBtn:disabled { background: var(--border); color: var(--text-dim); cursor: not-allowed; box-shadow: none; }
+
+        .input-hint {
+            margin-top: 0.6rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Loader ── */
+        #loader {
+            display: none;
+            margin-bottom: 2rem;
+        }
+
+        #loader.visible { display: block; animation: fadeUp 0.3s ease both; }
+
+        .loader-track {
+            height: 1px;
+            background: var(--border);
+            overflow: hidden;
+            margin-bottom: 0.8rem;
+        }
+
+        .loader-fill {
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            width: 40%;
+            animation: loader-sweep 1.8s ease-in-out infinite;
+        }
+
+        @keyframes loader-sweep {
+            0%   { transform: translateX(-150%); }
+            100% { transform: translateX(350%); }
+        }
+
+        .loader-text {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .loader-text::before {
+            content: '';
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse-dot 1s ease-in-out infinite;
+        }
+
+        /* ── Response ── */
+        #responseArea { display: none; }
+        #responseArea.visible {
+            display: block;
+            animation: fadeUp 0.45s ease both;
+        }
+
+        /* ── Section ── */
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-label {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.18em;
+            color: var(--text-muted);
+        }
+
+        .section-rule {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .section-count {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.68rem;
+            color: var(--text-dim);
+        }
+
+        /* ── Cost banner ── */
+        .cost-banner {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 2px;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .cost-group { display: flex; flex-direction: column; gap: 0.2rem; }
+
+        .cost-sublabel {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .cost-amount {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.8rem;
+            letter-spacing: 0.03em;
+            color: var(--accent);
+            line-height: 1;
+            text-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .cost-dates {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+
+        /* ── Message block ── */
+        .message-block {
+            padding: 1.25rem 1.5rem 1.25rem 2.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            font-size: 1.15rem;
+            line-height: 1.75;
+            color: var(--text);
+            position: relative;
+            margin-bottom: 2.5rem;
+        }
+
+        .message-block::before {
+            content: '"';
+            font-family: 'DM Serif Display', serif;
+            font-size: 4rem;
+            color: var(--accent);
+            position: absolute;
+            top: -0.75rem;
+            left: 0.9rem;
+            line-height: 1;
+            opacity: 0.6;
+        }
+
+        /* ── Flight card ── */
+        .flight-card {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+
+        .flight-card:hover { border-color: var(--warm); }
+
+        .card-stripe { width: 3px; background: var(--warm); flex-shrink: 0; }
+        .card-stripe-blue { width: 3px; background: var(--blue); flex-shrink: 0; }
+        .card-stripe-green { width: 3px; background: var(--green); flex-shrink: 0; }
+
+        .card-body {
+            padding: 1.1rem 1.4rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .flight-route {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .route-city {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.9rem;
+            letter-spacing: 0.04em;
+            line-height: 1;
+        }
+
+        .route-arrow {
+            color: var(--warm);
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .flight-meta {
+            display: flex;
+            gap: 1.75rem;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .meta-group { display: flex; flex-direction: column; gap: 0.18rem; }
+
+        .meta-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .meta-val {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: var(--text);
+        }
+
+        .meta-price {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--warm);
+            letter-spacing: 0.04em;
+        }
+
+        .card-reason {
+            margin-top: 0.85rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid var(--border-soft);
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* ── Hotel card ── */
+        .hotel-card {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            transition: border-color 0.15s;
+        }
+
+        .hotel-card:hover { border-color: var(--blue); }
+
+        .hotel-name {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            color: var(--text);
+        }
+
+        .hotel-stars {
+            color: var(--accent);
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* ── Activity item ── */
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 0.9rem 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            margin-bottom: 0.6rem;
+            transition: border-color 0.15s;
+        }
+
+        .activity-item:hover { border-color: var(--green); }
+
+        .activity-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            margin-top: 0.45rem;
+            flex-shrink: 0;
+        }
+
+        .activity-content { flex: 1; min-width: 0; }
+
+        .activity-name {
+            font-size: 1.05rem;
+            color: var(--text);
+            margin-bottom: 0.2rem;
+        }
+
+        .activity-reason-text {
+            font-family: 'Crimson Pro', serif;
+            font-style: italic;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .activity-cost {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: var(--green);
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+        }
+
+        /* ── Trace accordion ── */
+        .trace-item {
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            margin-bottom: 0.4rem;
+            overflow: hidden;
+        }
+
+        .trace-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 0.8rem 1.1rem;
+            background: var(--surface);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.12s;
+        }
+
+        .trace-trigger:hover { background: var(--surface-2); }
+
+        .trace-turn-badge {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text-muted);
+            min-width: 2.2rem;
+            text-align: center;
+        }
+
+        .trace-tool-name {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: var(--accent);
+            flex: 1;
+        }
+
+        .trace-tokens-info {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+        }
+
+        .trace-chevron {
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            transition: transform 0.18s;
+            flex-shrink: 0;
+        }
+
+        .trace-item.open .trace-chevron { transform: rotate(90deg); }
+
+        .trace-body {
+            display: none;
+            padding: 1rem 1.1rem;
+            background: #070707;
+            border-top: 1px solid var(--border);
+        }
+
+        .trace-item.open .trace-body { display: block; }
+
+        .trace-section-label {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+        }
+
+        .trace-section-label + .json-block { margin-bottom: 1rem; }
+
+        .json-block {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            line-height: 1.75;
+            color: #555;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        /* ── JSON syntax colors ── */
+        .j-key  { color: var(--blue); }
+        .j-str  { color: var(--green); }
+        .j-num  { color: var(--warm); }
+        .j-bool { color: var(--pink); }
+        .j-null { color: var(--text-dim); }
+
+        /* ── Raw JSON toggle ── */
+        .raw-reveal {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            padding: 0.7rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            border-top: 1px solid var(--border);
+            margin-top: 0.5rem;
+            user-select: none;
+            transition: color 0.15s;
+        }
+
+        .raw-reveal:hover { color: var(--text-muted); }
+
+        .raw-reveal .chevron { transition: transform 0.18s; }
+        .raw-reveal.open .chevron { transform: rotate(90deg); }
+
+        .raw-block {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 1.1rem;
+            background: #060606;
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            line-height: 1.75;
+            white-space: pre-wrap;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .raw-block.visible { display: block; animation: fadeUp 0.25s ease; }
+
+        /* ── Error ── */
+        .error-block {
+            padding: 1rem 1.4rem;
+            background: rgba(255,61,61,0.06);
+            border: 1px solid rgba(255,61,61,0.25);
+            border-radius: 2px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: var(--error);
+        }
+
+        /* ── Fallback ID display ── */
+        .id-pill {
+            display: inline-block;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.72rem;
+            padding: 0.15rem 0.5rem;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            color: var(--text-muted);
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 1.5rem 2rem 2.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            letter-spacing: 0.1em;
+            border-top: 1px solid var(--border-soft);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            header { padding: 1.2rem 1.5rem; }
+            .brand-name { font-size: 2rem; }
+            main { padding: 2.5rem 1.25rem 4rem; }
+            .hero-title { font-size: 2rem; }
+            .route-city { font-size: 1.4rem; }
+            .cost-amount { font-size: 2rem; }
+            .cost-banner { flex-direction: column; gap: 0.75rem; }
+            .cost-dates { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <span class="brand-name">Mindy</span>
+        <span class="brand-tag">AI Travel Agent</span>
+    </div>
+    <div class="status-pill">
+        <div class="status-dot"></div>
+        online
+    </div>
+</header>
+
+<main>
+    <div class="hero">
+        <div class="hero-label">// where are we going today</div>
+        <h1 class="hero-title">Plan your next<br>trip in seconds.</h1>
+    </div>
+
+    <div class="input-block">
+        <div class="input-shell">
+            <input type="text" id="promptInput"
+                   placeholder="NYC → LA, June 12–15 under $1500"
+                   autocomplete="off"
+                   onkeydown="if(event.key==='Enter') submitPrompt()">
+            <button id="submitBtn" onclick="submitPrompt()">Plan Trip</button>
+        </div>
+        <div class="input-hint">↵ press enter or click — Mindy searches flights, hotels &amp; activities</div>
+    </div>
+
+    <div id="loader">
+        <div class="loader-track"><div class="loader-fill"></div></div>
+        <div class="loader-text" id="loaderText">Searching flights...</div>
+    </div>
+
+    <div id="responseArea"></div>
+</main>
+
+<footer>MINDY v1.0 &mdash; POWERED BY CLAUDE SONNET</footer>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────────────────────────────────────
+
+function syntaxHighlight(json) {
+    if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+    json = json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return json.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+        m => {
+            if (/^"/.test(m)) return /:$/.test(m)
+                ? `<span class="j-key">${m}</span>`
+                : `<span class="j-str">${m}</span>`;
+            if (/true|false/.test(m)) return `<span class="j-bool">${m}</span>`;
+            if (/null/.test(m))       return `<span class="j-null">${m}</span>`;
+            return `<span class="j-num">${m}</span>`;
+        }
+    );
+}
+
+function formatTime(t) {
+    if (!t) return '—';
+    // t might be "14:30:00" or "14:30"
+    const parts = t.split(':');
+    if (parts.length < 2) return t;
+    let h = parseInt(parts[0], 10);
+    const m = parts[1];
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${m} ${ampm}`;
+}
+
+function formatDuration(h) {
+    if (h == null) return '';
+    const hrs = Math.floor(h);
+    const mins = Math.round((h - hrs) * 60);
+    return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+}
+
+function stars(rating) {
+    if (!rating) return '';
+    const full = Math.round(rating);
+    return '★'.repeat(full) + '☆'.repeat(Math.max(0, 5 - full));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extract a lookup map from the agent trace
+// Maps IDs → rich data from search tool outputs
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildLookups(trace) {
+    const flights = {}, hotels = {}, activities = {};
+
+    for (const step of trace) {
+        if (!step.output || !Array.isArray(step.output)) continue;
+
+        if (step.tool === 'search_flights') {
+            for (const f of step.output) {
+                if (f.flight_id) flights[f.flight_id] = f;
+            }
+        } else if (step.tool === 'search_hotels') {
+            for (const h of step.output) {
+                if (h.hotel_id) hotels[h.hotel_id] = h;
+            }
+        } else if (step.tool === 'search_activities') {
+            for (const a of step.output) {
+                if (a.activity_id) activities[a.activity_id] = a;
+            }
+        }
+    }
+
+    return { flights, hotels, activities };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Renderers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderSection(label, count, content) {
+    return `
+    <div class="section">
+        <div class="section-head">
+            <span class="section-label">${label}</span>
+            <div class="section-rule"></div>
+            ${count != null ? `<span class="section-count">${count}</span>` : ''}
+        </div>
+        ${content}
+    </div>`;
+}
+
+function renderFlightCard(item, lookups) {
+    const id = typeof item === 'object' ? item.id : item;
+    const reason = typeof item === 'object' ? item.reason : '';
+    const f = lookups.flights[id];
+
+    if (f) {
+        const stops = f.stops === 0 ? 'Nonstop' : f.stops === 1 ? '1 stop' : `${f.stops} stops`;
+        const layover = f.layover_airport
+            ? ` via ${f.layover_airport}${f.layover_minutes ? ` (${f.layover_minutes}m)` : ''}`
+            : '';
+
+        return `
+        <div class="flight-card">
+            <div class="card-stripe"></div>
+            <div class="card-body">
+                <div class="flight-route">
+                    <span class="route-city">${f.origin_city || f.origin_iata || 'ORG'}</span>
+                    <span class="route-arrow">→</span>
+                    <span class="route-city">${f.destination_city || f.destination_iata || 'DST'}</span>
+                </div>
+                <div class="flight-meta">
+                    <div class="meta-group">
+                        <span class="meta-label">Airline</span>
+                        <span class="meta-val">${f.airline_iata || '—'} ${f.flight_number || ''}</span>
+                    </div>
+                    <div class="meta-group">
+                        <span class="meta-label">Departs</span>
+                        <span class="meta-val">${formatTime(f.depart_time)}</span>
+                    </div>
+                    <div class="meta-group">
+                        <span class="meta-label">Arrives</span>
+                        <span class="meta-val">${formatTime(f.arrive_time)}</span>
+                    </div>
+                    <div class="meta-group">
+                        <span class="meta-label">Duration</span>
+                        <span class="meta-val">${formatDuration(f.duration_hours)}</span>
+                    </div>
+                    <div class="meta-group">
+                        <span class="meta-label">Routing</span>
+                        <span class="meta-val">${stops}${layover}</span>
+                    </div>
+                    ${f.cabin ? `<div class="meta-group"><span class="meta-label">Cabin</span><span class="meta-val">${f.cabin}</span></div>` : ''}
+                    <div class="meta-group">
+                        <span class="meta-label">Price</span>
+                        <span class="meta-price">$${(f.price || 0).toLocaleString()}</span>
+                    </div>
+                </div>
+                ${reason ? `<div class="card-reason">${reason}</div>` : ''}
+            </div>
+        </div>`;
+    }
+
+    // Fallback when not found in trace
+    return `
+    <div class="flight-card">
+        <div class="card-stripe"></div>
+        <div class="card-body">
+            <div class="flight-meta">
+                <div class="meta-group">
+                    <span class="meta-label">Flight ID</span>
+                    <span class="id-pill">${id}</span>
+                </div>
+            </div>
+            ${reason ? `<div class="card-reason">${reason}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+function renderHotelCard(item, lookups, nights) {
+    const id = typeof item === 'object' ? item.id : item;
+    const reason = typeof item === 'object' ? item.reason : '';
+    const h = lookups.hotels[id];
+
+    if (h) {
+        const total = h.price_per_night && nights ? `$${(h.price_per_night * nights).toLocaleString()}` : '';
+        const amenitiesList = (() => {
+            try {
+                const arr = typeof h.amenities === 'string' ? JSON.parse(h.amenities) : h.amenities;
+                return Array.isArray(arr) ? arr.slice(0, 4).join(' · ') : '';
+            } catch { return ''; }
+        })();
+
+        return `
+        <div class="hotel-card">
+            <div class="card-stripe-blue"></div>
+            <div class="card-body">
+                <div class="hotel-name">${h.name || id}</div>
+                <div class="flight-meta">
+                    ${h.rating ? `<div class="meta-group"><span class="meta-label">Rating</span><span class="meta-val hotel-stars">${stars(h.rating)} <span style="color:var(--text-muted)">${h.rating}/5</span></span></div>` : ''}
+                    ${h.tier ? `<div class="meta-group"><span class="meta-label">Tier</span><span class="meta-val">${h.tier}</span></div>` : ''}
+                    <div class="meta-group">
+                        <span class="meta-label">Per night</span>
+                        <span class="meta-val" style="color:var(--blue)">$${(h.price_per_night || 0).toLocaleString()}</span>
+                    </div>
+                    ${nights ? `<div class="meta-group"><span class="meta-label">Nights</span><span class="meta-val">${nights}</span></div>` : ''}
+                    ${total ? `<div class="meta-group"><span class="meta-label">Total</span><span class="meta-price" style="color:var(--blue)">${total}</span></div>` : ''}
+                    ${h.distance_miles != null ? `<div class="meta-group"><span class="meta-label">From airport</span><span class="meta-val">${h.distance_miles} mi</span></div>` : ''}
+                </div>
+                ${amenitiesList ? `<div class="card-reason">${amenitiesList}</div>` : ''}
+                ${reason ? `<div class="card-reason" style="border-top:${amenitiesList?'none':'1px solid var(--border-soft)'}; padding-top:${amenitiesList?'0':'0.85rem'}">${reason}</div>` : ''}
+            </div>
+        </div>`;
+    }
+
+    return `
+    <div class="hotel-card">
+        <div class="card-stripe-blue"></div>
+        <div class="card-body">
+            <div class="hotel-name"><span class="id-pill">${id}</span></div>
+            ${nights ? `<div class="flight-meta"><div class="meta-group"><span class="meta-label">Nights</span><span class="meta-val">${nights}</span></div></div>` : ''}
+            ${reason ? `<div class="card-reason">${reason}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+function renderActivityItem(item, lookups) {
+    const id = typeof item === 'object' ? item.id : item;
+    const reason = typeof item === 'object' ? item.reason : '';
+    const a = lookups.activities[id];
+
+    const name = a ? (a.name || id) : id;
+    const cost = a ? `$${(a.cost || 0).toLocaleString()}` : '';
+
+    return `
+    <div class="activity-item">
+        <div class="activity-dot"></div>
+        <div class="activity-content">
+            <div class="activity-name">${name}</div>
+            ${reason ? `<div class="activity-reason-text">${reason}</div>` : ''}
+        </div>
+        ${cost ? `<span class="activity-cost">${cost}</span>` : ''}
+    </div>`;
+}
+
+function renderTrace(trace) {
+    if (!trace || trace.length === 0) return '';
+
+    const items = trace.map((step, i) => {
+        const turn = step.turn || step.step || (i + 1);
+        const toolName = step.tool || step.step || '—';
+        const tokens = step.tokens
+            ? `${(step.tokens.input_tokens || 0).toLocaleString()} in / ${(step.tokens.output_tokens || 0).toLocaleString()} out`
+            : '';
+        const inputHtml = step.input != null
+            ? syntaxHighlight(JSON.stringify(step.input, null, 2))
+            : '<span class="j-null">—</span>';
+        const outputHtml = step.output != null
+            ? syntaxHighlight(JSON.stringify(step.output, null, 2))
+            : '<span class="j-null">—</span>';
+
+        return `
+        <div class="trace-item" onclick="toggleTrace(this)">
+            <div class="trace-trigger">
+                <span class="trace-turn-badge">T${turn}</span>
+                <span class="trace-tool-name">${toolName}</span>
+                <span class="trace-tokens-info">${tokens}</span>
+                <span class="trace-chevron">▶</span>
+            </div>
+            <div class="trace-body">
+                <div class="trace-section-label">Input</div>
+                <div class="json-block">${inputHtml}</div>
+                <div class="trace-section-label">Output</div>
+                <div class="json-block">${outputHtml}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    return renderSection('Agent Trace', `${trace.length} steps`, items);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main render
+// ─────────────────────────────────────────────────────────────────────────────
+
+function renderItinerary(data) {
+    const output  = data.output  || {};
+    const message = data.message || '';
+    const trace   = data.trace   || [];
+    const error   = data.error;
+    const lookups = buildLookups(trace);
+
+    let html = '';
+
+    // Error (non-fatal, e.g. max turns exceeded)
+    if (error) {
+        html += `<div class="error-block" style="margin-bottom:1.5rem;">⚠ ${error}</div>`;
+    }
+
+    // Cost banner
+    const hasCost = output.total_cost || output.check_in;
+    if (hasCost) {
+        let datesHtml = '';
+        if (output.check_in && output.check_out) {
+            datesHtml = `${output.check_in} &rarr; ${output.check_out}`;
+            if (output.hotel_nights) datesHtml += `<br><span style="font-size:0.7rem;">${output.hotel_nights} night${output.hotel_nights !== 1 ? 's' : ''}</span>`;
+        }
+        html += `
+        <div class="cost-banner">
+            <div class="cost-group">
+                <span class="cost-sublabel">Total Estimated Cost</span>
+                <span class="cost-amount">$${(output.total_cost || 0).toLocaleString()}</span>
+            </div>
+            ${datesHtml ? `<div class="cost-group cost-dates">${datesHtml}</div>` : ''}
+        </div>`;
+    }
+
+    // Message
+    if (message) {
+        html += `<div class="message-block">${message}</div>`;
+    }
+
+    // Flights
+    if (output.flights && output.flights.length > 0) {
+        const cards = output.flights.map(f => renderFlightCard(f, lookups)).join('');
+        html += renderSection('Flights', output.flights.length, cards);
+    }
+
+    // Hotels
+    if (output.hotels && output.hotels.length > 0) {
+        const cards = output.hotels.map(h => renderHotelCard(h, lookups, output.hotel_nights)).join('');
+        html += renderSection('Hotels', output.hotels.length, cards);
+    }
+
+    // Activities
+    if (output.activities && output.activities.length > 0) {
+        const items = output.activities.map(a => renderActivityItem(a, lookups)).join('');
+        html += renderSection('Activities', output.activities.length, items);
+    }
+
+    // Trace
+    html += renderTrace(trace);
+
+    // Raw JSON
+    html += `
+    <div class="raw-reveal" onclick="toggleRaw(this)">
+        <span class="chevron">▶</span>
+        <span>View raw JSON response</span>
+    </div>
+    <div class="raw-block" id="rawJsonBlock">${syntaxHighlight(JSON.stringify(data, null, 2))}</div>`;
+
+    return html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interactions
+// ─────────────────────────────────────────────────────────────────────────────
+
+function toggleTrace(el) {
+    el.classList.toggle('open');
+}
+
+function toggleRaw(toggleEl) {
+    const block = document.getElementById('rawJsonBlock');
+    const isOpen = block.classList.toggle('visible');
+    toggleEl.classList.toggle('open', isOpen);
+}
+
+// Loader message cycling
+const loaderMessages = [
+    'Searching flights...',
+    'Checking hotel availability...',
+    'Finding local activities...',
+    'Comparing prices...',
+    'Building your itinerary...',
+];
+let loaderInterval = null;
+
+function startLoader() {
+    const el = document.getElementById('loaderText');
+    let i = 0;
+    el.textContent = loaderMessages[0];
+    loaderInterval = setInterval(() => {
+        i = (i + 1) % loaderMessages.length;
+        el.textContent = loaderMessages[i];
+    }, 2200);
+}
+
+function stopLoader() {
+    if (loaderInterval) { clearInterval(loaderInterval); loaderInterval = null; }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Submit
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function submitPrompt() {
+    const input  = document.getElementById('promptInput');
+    const btn    = document.getElementById('submitBtn');
+    const loader = document.getElementById('loader');
+    const area   = document.getElementById('responseArea');
+
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    input.disabled = true;
+    btn.disabled   = true;
+    area.classList.remove('visible');
+    area.innerHTML = '';
+    loader.classList.add('visible');
+    startLoader();
+
+    try {
+        const res  = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json();
+
+        area.innerHTML = res.ok
+            ? renderItinerary(data)
+            : `<div class="error-block">Error: ${data.error || 'Something went wrong'}</div>`;
+    } catch (err) {
+        area.innerHTML = `<div class="error-block">Error: ${err.message}</div>`;
+    } finally {
+        stopLoader();
+        loader.classList.remove('visible');
+        area.classList.add('visible');
+        input.disabled = false;
+        btn.disabled   = false;
+        input.focus();
+    }
+}
+</script>
+</body>
+</html>
