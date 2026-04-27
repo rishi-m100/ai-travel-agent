@@ -7,13 +7,11 @@ from datetime import datetime, timedelta
 import anthropic
 from pathlib import Path
 from agent.tool_schemas import TOOL_SCHEMAS, CONSTRAINT_PARSER_TOOL
-from agent.tools import execute_tool
+from agent.tools import execute_tool, DB_PATH
 from dotenv import load_dotenv
 load_dotenv()
 
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-
-DB_PATH = Path(__file__).parent.parent / "data" / "mindy_dataset.db"
 
 MAX_AGENT_TURNS = 10
 MAX_REVISION_COUNT = 10
@@ -273,6 +271,7 @@ def run_agent(user_message: str, verbose: bool = False) -> str:
 
                 if block.name == "submit_itinerary":
                     itinerary = block.input
+                    # added in verify constraints
                     violations = verify_constraints(itinerary)
 
                     trace.append({
@@ -343,6 +342,7 @@ def run_agent(user_message: str, verbose: bool = False) -> str:
 
 
 if __name__ == "__main__":
+    # for running agent.py directly uses this query ...
     response = run_agent(
         "NYC → LA, June 12–15",
         verbose=True

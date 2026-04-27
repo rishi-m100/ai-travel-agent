@@ -5,7 +5,7 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--csv-dir", default="data/csvs", help="Directory containing CSV exports")
-parser.add_argument("--db", default="data/mindy_dataset.db", help="Output SQLite path")
+parser.add_argument("--db", default="data/mindy_dataset_v3.db", help="Output SQLite path")
 args = parser.parse_args()
 
 Path(args.db).parent.mkdir(parents=True, exist_ok=True)

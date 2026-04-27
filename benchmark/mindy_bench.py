@@ -48,6 +48,8 @@ class TaskScore:
     constraint_satisfaction: float  # 0.0 - 1.0
     budget_efficiency: float        # 0.0 - 1.0
     logistics_score: float          # 0.0 - 1.0
+    evaluation_score: float         # Composite weighted score
+    passed: bool                    # Binary pass/fail based on threshold
     details: dict[str, Any]
     agent_response: dict[str, Any] | None = None  # Full agent JSON response
 
@@ -61,17 +63,14 @@ EASY_TASKS = [
         task_id="easy_01",
         name="Find Cheapest Flight in Time Period",
         user_prompt="Find the cheapest flight from Chicago (ORD) to Seattle (SEA) on June 10th, 2025.",
-        constraints={
-            "origin": "ORD",
-            "destination": "SEA",
-            "depart_date": "2025-07-01",
-            "optimization": "min_price"
-        },
+        constraints={},
         ground_truth={
             "type": "flight",
             "origin_city": "Chicago",
             "destination_city": "Seattle",
-            "date": "2025-06-10"
+            "date": "2025-06-10",
+            "origin": "ORD",
+            "destination": "SEA"
         },
         success_criteria={
             "must_have_flight": True,
@@ -86,11 +85,7 @@ EASY_TASKS = [
         task_id="easy_02",
         name="Find Hotel with 1 Amenity Requirement",
         user_prompt="I need a hotel in New York for June 10th, 2025 that has a gym",
-        constraints={
-            "city": "New York",
-            "check_in_date": "2025-10-05",
-            "required_amenities": ["gym"]
-        },
+        constraints={},
         ground_truth={
             "type": "hotel",
             "city": "New York",
@@ -110,18 +105,15 @@ EASY_TASKS = [
         task_id="easy_03",
         name="Find Flight within Specific Time Constraint",
         user_prompt="Find a flight from New York (JFK) to Los Angeles (LAX) on June 11th, 2025 that arrives before 4:00 PM.",
-        constraints={
-            "origin": "JFK",
-            "destination": "LAX",
-            "depart_date": "2025-09-15",
-            "arrive_before": "14:00"
-        },
+        constraints={},
         ground_truth={
             "type": "flight",
             "origin_city": "New York",
             "destination_city": "Los Angeles",
             "date": "2025-06-11",
-            "max_arrival_time": "14:00"
+            "max_arrival_time": "14:00",
+            "origin": "JFK",
+            "destination": "LAX"
         },
         success_criteria={
             "must_have_flight": True,
@@ -183,11 +175,11 @@ def calculate_constraint_satisfaction(
                     if criteria.get("correct_route"):
                         origin_match = (
                             flight_row["origin_city"] == task.ground_truth.get("origin_city") or
-                            flight_row["origin"] == task.constraints.get("origin")
+                            flight_row["origin"] == task.ground_truth.get("origin")
                         )
                         dest_match = (
                             flight_row["destination_city"] == task.ground_truth.get("destination_city") or
-                            flight_row["destination"] == task.constraints.get("destination")
+                            flight_row["destination"] == task.ground_truth.get("destination")
                         )
                         if origin_match and dest_match:
                             met_constraints += 1
@@ -215,9 +207,9 @@ def calculate_constraint_satisfaction(
                                  AND f.seats_available > 0""",
                             (
                                 task.ground_truth.get("origin_city"),
-                                task.constraints.get("origin"),
+                                task.ground_truth.get("origin"),
                                 task.ground_truth.get("destination_city"),
-                                task.constraints.get("destination"),
+                                task.ground_truth.get("destination"),
                                 task.ground_truth.get("date")
                             )
                         ).fetchone()
@@ -283,8 +275,8 @@ def calculate_constraint_satisfaction(
                         else:
                             details["has_gym"] = False
 
-                    # Availability check
-                    if criteria.get("has_availability") and criteria.get("correct_date"):
+                    # Availability AND date check (combined - no double counting)
+                    if criteria.get("has_availability") or criteria.get("correct_date"):
                         check_in = task.ground_truth.get("check_in")
                         avail = conn.execute(
                             """SELECT 1 FROM hotel_availability
@@ -296,17 +288,12 @@ def calculate_constraint_satisfaction(
                         ).fetchone()
 
                         if avail:
+                            # Award one point for the combined availability+date check
                             met_constraints += 1
                             details["has_availability"] = True
-                        else:
-                            details["has_availability"] = False
-
-                    # Correct date
-                    if criteria.get("correct_date"):
-                        if details.get("has_availability", False):
-                            met_constraints += 1
                             details["correct_date"] = True
                         else:
+                            details["has_availability"] = False
                             details["correct_date"] = False
 
     score = met_constraints / total_constraints if total_constraints > 0 else 0.0
@@ -400,12 +387,26 @@ def calculate_logistics_score(agent_output: dict) -> tuple[float, dict]:
     return score, details
 
 
-def evaluate_task(task: BenchmarkTask, agent_output: dict) -> TaskScore:
+def calculate_evaluation_score(cs: float, be: float, ls: float) -> float:
+    """
+    Calculate composite Evaluation Score as defined in paper.
+    S = (0.5 * CS) + (0.3 * BE) + (0.2 * LS)
+    """
+    return (0.5 * cs) + (0.3 * be) + (0.2 * ls)
+
+
+def evaluate_task(task: BenchmarkTask, agent_output: dict, success_threshold: float = 0.75) -> TaskScore:
     """Evaluate a single task and return scores."""
 
     cs_score, cs_details = calculate_constraint_satisfaction(task, agent_output)
     be_score, be_details = calculate_budget_efficiency(agent_output, cs_details)
     ls_score, ls_details = calculate_logistics_score(agent_output)
+
+    # Calculate composite evaluation score (paper's headline metric)
+    eval_score = calculate_evaluation_score(cs_score, be_score, ls_score)
+
+    # Binary pass/fail based on threshold
+    passed = eval_score >= success_threshold
 
     all_details = {
         "constraint_satisfaction": cs_details,
@@ -419,6 +420,8 @@ def evaluate_task(task: BenchmarkTask, agent_output: dict) -> TaskScore:
         constraint_satisfaction=cs_score,
         budget_efficiency=be_score,
         logistics_score=ls_score,
+        evaluation_score=eval_score,
+        passed=passed,
         details=all_details,
         agent_response=agent_output  # Save full agent response
     )
@@ -451,6 +454,7 @@ def run_benchmark(tasks: list[BenchmarkTask] = None, verbose: bool = True, num_r
 
         # Run the task multiple times
         run_scores = []
+        run_details = []  # Store detailed info for each run
         for run_num in range(1, num_runs + 1):
             if verbose:
                 print(f"\n  Run {run_num}/{num_runs}...")
@@ -463,35 +467,75 @@ def run_benchmark(tasks: list[BenchmarkTask] = None, verbose: bool = True, num_r
                     print(f"  ERROR: Agent failed - {e}")
                 agent_output = {
                     "output": {},
-                    "error": str(e)
+                    "error": str(e),
+                    "trace": []
                 }
 
             score = evaluate_task(task, agent_output)
             run_scores.append(score)
 
+            # Extract constraints from trace (first step should be parse_constraints)
+            constraints = {}
+            trace = agent_output.get("trace", [])
+            if trace and trace[0].get("step") == "parse_constraints":
+                constraints = trace[0].get("output", {})
+
+            # Save detailed run information
+            run_details.append({
+                "run_number": run_num,
+                "constraints": constraints,
+                "trace": trace,
+                "output": agent_output.get("output", {}),
+                "message": agent_output.get("message"),
+                "error": agent_output.get("error"),
+                "scores": {
+                    "constraint_satisfaction": score.constraint_satisfaction,
+                    "budget_efficiency": score.budget_efficiency,
+                    "logistics_score": score.logistics_score,
+                    "evaluation_score": score.evaluation_score,
+                    "passed": score.passed
+                },
+                "score_details": score.details
+            })
+
             if verbose:
-                print(f"  CS: {score.constraint_satisfaction:.3f} | BE: {score.budget_efficiency:.3f} | LS: {score.logistics_score:.3f}")
+                print(f"  CS: {score.constraint_satisfaction:.3f} | BE: {score.budget_efficiency:.3f} | LS: {score.logistics_score:.3f} | Eval: {score.evaluation_score:.3f} | Pass: {score.passed}")
 
         # Calculate average scores across all runs
         avg_cs = sum(s.constraint_satisfaction for s in run_scores) / len(run_scores)
         avg_be = sum(s.budget_efficiency for s in run_scores) / len(run_scores)
         avg_ls = sum(s.logistics_score for s in run_scores) / len(run_scores)
+        avg_eval = sum(s.evaluation_score for s in run_scores) / len(run_scores)
 
-        # Create averaged task score (using the last run's details and agent_response as representative)
+        # Task passes if average evaluation score meets threshold
+        task_passed = avg_eval >= 0.75
+
+        # Create averaged task score with detailed run information
         avg_score = TaskScore(
             task_id=task.task_id,
             task_name=task.name,
             constraint_satisfaction=avg_cs,
             budget_efficiency=avg_be,
             logistics_score=avg_ls,
+            evaluation_score=avg_eval,
+            passed=task_passed,
             details={
                 "average_of_runs": num_runs,
+                "task_info": {
+                    "prompt": task.user_prompt,
+                    "constraints": task.constraints,
+                    "ground_truth": task.ground_truth,
+                    "success_criteria": task.success_criteria
+                },
+                "runs": run_details,  # Full detailed run information
                 "individual_runs": [
                     {
                         "run": idx + 1,
                         "cs": s.constraint_satisfaction,
                         "be": s.budget_efficiency,
                         "ls": s.logistics_score,
+                        "eval": s.evaluation_score,
+                        "passed": s.passed,
                         "details": s.details
                     }
                     for idx, s in enumerate(run_scores)
@@ -508,6 +552,8 @@ def run_benchmark(tasks: list[BenchmarkTask] = None, verbose: bool = True, num_r
             print(f"Constraint Satisfaction: {avg_cs:.3f}")
             print(f"Budget Efficiency:       {avg_be:.3f}")
             print(f"Logistics Score:         {avg_ls:.3f}")
+            print(f"Evaluation Score:        {avg_eval:.3f}")
+            print(f"Task Passed (≥0.75):     {task_passed}")
 
     # Calculate overall averages across all tasks
     if verbose:

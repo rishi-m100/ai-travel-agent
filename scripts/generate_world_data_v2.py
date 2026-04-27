@@ -4,7 +4,7 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed",    type=int, default=42)
-parser.add_argument("--db",      default="data/mindy_dataset.db")
+parser.add_argument("--db",      default="data/mindy_dataset_v3.db")
 parser.add_argument("--csv-dir", default="data/csvs")
 args = parser.parse_args()
 random.seed(args.seed)

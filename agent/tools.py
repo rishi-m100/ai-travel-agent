@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import os
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "mindy_dataset.db"
+# Allow DB_PATH to be overridden via environment variable for testing/benchmarking
+_DEFAULT_DB_PATH = Path(__file__).parent.parent / "data" / "mindy_dataset_v3.db"
+DB_PATH = Path(os.environ.get("MINDY_DB_PATH", _DEFAULT_DB_PATH))
 
 _ALIASES: dict[str, str] = {
     "nyc": "New York",  "new york city": "New York",

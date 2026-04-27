@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindy Benchmark Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #06c;
+        }
+
+        .summary {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-item .label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #06c;
+        }
+
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .task-header:hover {
+            opacity: 0.8;
+        }
+
+        .task-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+
+        .task-id {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .task-status {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .score-badge {
+            background: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .task-prompt {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-style: italic;
+            border-left: 4px solid #06c;
+        }
+
+        .section {
+            margin: 20px 0;
+        }
+
+        .section-header {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #06c;
+            cursor: pointer;
+            user-select: none;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header:hover {
+            background: #f0f0f0;
+        }
+
+        .toggle-icon {
+            font-size: 0.8em;
+        }
+
+        .section-content {
+            margin-top: 10px;
+            padding-left: 15px;
+        }
+
+        .constraints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .constraint-box {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #06c;
+        }
+
+        .constraint-box.hard {
+            border-left-color: #dc3545;
+        }
+
+        .constraint-box.soft {
+            border-left-color: #ffc107;
+        }
+
+        .constraint-box.assumption {
+            border-left-color: #17a2b8;
+        }
+
+        .constraint-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .constraint-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .constraint-list li {
+            padding: 4px 0;
+            font-size: 0.95em;
+        }
+
+        .constraint-list li:before {
+            content: "• ";
+            color: #06c;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .run-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .run-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 1em;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .run-tab:hover {
+            background: #f9f9f9;
+        }
+
+        .run-tab.active {
+            border-bottom-color: #06c;
+            color: #06c;
+            font-weight: 600;
+        }
+
+        .run-content {
+            display: none;
+        }
+
+        .run-content.active {
+            display: block;
+        }
+
+        .trace-item {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            border-left: 4px solid #06c;
+        }
+
+        .trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .trace-tool {
+            font-weight: 600;
+            color: #06c;
+        }
+
+        .trace-turn {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .trace-details {
+            margin-top: 10px;
+        }
+
+        .json-viewer {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        .output-section {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .output-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #06c;
+        }
+
+        .output-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .output-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #06c;
+        }
+
+        .output-label {
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .output-value {
+            font-size: 1.1em;
+            color: #1d1d1f;
+        }
+
+        .scores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .score-item {
+            text-align: center;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .score-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .score-value.good {
+            color: #28a745;
+        }
+
+        .score-value.medium {
+            color: #ffc107;
+        }
+
+        .score-value.poor {
+            color: #dc3545;
+        }
+
+        .collapsible {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsed {
+            max-height: 0;
+        }
+
+        .expanded {
+            max-height: 5000px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .message-box {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧳 Mindy Benchmark Results</h1>
+            <p>AI Travel Agent Performance Analysis</p>
+
+            {% if error %}
+            <div class="error-message" style="margin-top: 20px;">
+                {{ error }}
+            </div>
+            {% elif results %}
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="label">Total Tasks</div>
+                    <div class="value">{{ results.total_tasks }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Runs per Task</div>
+                    <div class="value">{{ results.runs_per_task }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Avg Constraint Satisfaction</div>
+                    <div class="value">{{ "%.3f"|format(results.overall_average_scores.constraint_satisfaction) }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Avg Budget Efficiency</div>
+                    <div class="value">{{ "%.3f"|format(results.overall_average_scores.budget_efficiency) }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">Avg Logistics Score</div>
+                    <div class="value">{{ "%.3f"|format(results.overall_average_scores.logistics_score) }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </header>
+
+        {% if results %}
+        <div class="task-card">
+            <div class="task-header" onclick="toggleSection('scoring-methodology')">
+                <div>
+                    <span class="task-title">📖 Scoring Methodology</span>
+                </div>
+                <span class="toggle-icon" id="toggle-scoring-methodology">▼</span>
+            </div>
+            <div id="scoring-methodology" class="collapsible expanded" style="padding: 20px;">
+                <h3 style="color: #06c; margin-bottom: 15px;">How Scores Are Calculated</h3>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">1. Constraint Satisfaction (CS) - 0.0 to 1.0</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>CS = met_constraints / total_constraints</code></p>
+                    <p style="margin-bottom: 10px;">Measures how well the agent satisfies task requirements. Each task has success criteria (e.g., "must_have_flight", "correct_route", "is_cheapest"). The benchmark:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li>Counts total criteria defined in the task</li>
+                        <li>Queries the database to verify each criterion</li>
+                        <li>For "is_cheapest": Runs <code>SELECT MIN(price)</code> SQL query to find optimal price</li>
+                        <li>Awards 1 point per satisfied constraint</li>
+                    </ul>
+                    <p><em>Example:</em> 4 out of 5 constraints met → CS = 0.8</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">2. Budget Efficiency (BE) - 0.0 to 1.0</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>BE = 1.0 - ((agent_cost - optimal_cost) / budget)</code></p>
+                    <p style="margin-bottom: 10px;">Measures cost-effectiveness of the agent's solution:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li><strong>agent_cost:</strong> Total cost of the agent's selected items</li>
+                        <li><strong>optimal_cost:</strong> Cheapest possible cost (from SQL MIN query)</li>
+                        <li><strong>budget:</strong> Currently hardcoded as <code>max(optimal_cost × 10, $5000)</code></li>
+                        <li>If agent exceeds budget → BE = 0.0</li>
+                        <li>Score clamped between 0.0 and 1.0</li>
+                    </ul>
+                    <p><em>Example:</em> Optimal: $200, Agent: $300, Budget: $2000 → BE = 1.0 - ((300-200)/2000) = 0.95</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">3. Logistics Score (LS) - 0.0 to 1.0</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> Starts at 1.0, deducts points for violations</p>
+                    <p style="margin-bottom: 10px;">Measures logical consistency and catches errors:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li><strong>-0.3:</strong> Agent error occurred</li>
+                        <li><strong>-0.2:</strong> Check-out date not after check-in date</li>
+                        <li><strong>-0.1:</strong> Hotel nights mismatch (calculated vs reported)</li>
+                        <li><strong>-0.1:</strong> Invalid date format</li>
+                        <li>Score clamped to minimum of 0.0</li>
+                    </ul>
+                    <p><em>Example:</em> No violations → LS = 1.0; Date error + nights mismatch → LS = 0.8</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">4. Evaluation Score (Composite)</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>S = (0.5 × CS) + (0.3 × BE) + (0.2 × LS)</code></p>
+                    <p style="margin-bottom: 10px;">Weighted combination of all three metrics:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li><strong>50% weight:</strong> Constraint Satisfaction (most important)</li>
+                        <li><strong>30% weight:</strong> Budget Efficiency</li>
+                        <li><strong>20% weight:</strong> Logistics Score</li>
+                    </ul>
+                    <p style="margin-bottom: 10px;"><strong>Pass Threshold:</strong> ≥ 0.75</p>
+                    <p><em>Example:</em> CS=0.8, BE=0.95, LS=1.0 → S = (0.5×0.8) + (0.3×0.95) + (0.2×1.0) = 0.885 ✓ PASS</p>
+                </div>
+
+                <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                    <strong>Note:</strong> Each task is run multiple times (default: 3 runs) and scores are averaged to account for variability in agent performance.
+                </div>
+            </div>
+        </div>
+
+        {% for task in results.task_results %}
+        <div class="task-card">
+            <div class="task-header" onclick="toggleSection('task-{{ task.task_id }}')">
+                <div>
+                    <span class="task-title">{{ task.task_name }}</span>
+                    <span class="task-id">({{ task.task_id }})</span>
+                </div>
+                <div class="task-status">
+                    <span class="badge score-badge">Eval: {{ "%.3f"|format(task.evaluation_score) }}</span>
+                    <span class="badge {% if task.passed %}pass{% else %}fail{% endif %}">
+                        {% if task.passed %}PASS{% else %}FAIL{% endif %}
+                    </span>
+                    <span class="toggle-icon" id="toggle-task-{{ task.task_id }}">▼</span>
+                </div>
+            </div>
+
+            <div id="task-{{ task.task_id }}" class="collapsible expanded">
+                {% if task.details.task_info %}
+                <div class="task-prompt">
+                    <strong>Prompt:</strong> {{ task.details.task_info.prompt }}
+                </div>
+
+                <div class="section">
+                    <div class="section-header" onclick="toggleSection('criteria-{{ task.task_id }}')">
+                        <span>Success Criteria</span>
+                        <span class="toggle-icon" id="toggle-criteria-{{ task.task_id }}">▼</span>
+                    </div>
+                    <div id="criteria-{{ task.task_id }}" class="section-content collapsible expanded">
+                        <div class="json-viewer">{{ task.details.task_info.success_criteria | tojson(indent=2) }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="section">
+                    <div class="section-header">
+                        Average Scores (across {{ task.details.average_of_runs }} runs)
+                    </div>
+                    <div class="scores-grid">
+                        <div class="score-item">
+                            <div class="score-label">Constraint Satisfaction</div>
+                            <div class="score-value {% if task.constraint_satisfaction >= 0.75 %}good{% elif task.constraint_satisfaction >= 0.5 %}medium{% else %}poor{% endif %}">
+                                {{ "%.3f"|format(task.constraint_satisfaction) }}
+                            </div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Budget Efficiency</div>
+                            <div class="score-value {% if task.budget_efficiency >= 0.75 %}good{% elif task.budget_efficiency >= 0.5 %}medium{% else %}poor{% endif %}">
+                                {{ "%.3f"|format(task.budget_efficiency) }}
+                            </div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Logistics Score</div>
+                            <div class="score-value {% if task.logistics_score >= 0.75 %}good{% elif task.logistics_score >= 0.5 %}medium{% else %}poor{% endif %}">
+                                {{ "%.3f"|format(task.logistics_score) }}
+                            </div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">Evaluation Score</div>
+                            <div class="score-value {% if task.evaluation_score >= 0.75 %}good{% elif task.evaluation_score >= 0.5 %}medium{% else %}poor{% endif %}">
+                                {{ "%.3f"|format(task.evaluation_score) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if task.details.runs %}
+                <div class="section">
+                    <div class="section-header">
+                        Individual Runs
+                    </div>
+                    <div class="run-tabs">
+                        {% for run in task.details.runs %}
+                        <button class="run-tab {% if loop.index == 1 %}active{% endif %}"
+                                onclick="showRun('{{ task.task_id }}', {{ loop.index }})">
+                            Run {{ run.run_number }}
+                            <span style="font-size: 0.85em; color: #666;">
+                                ({{ "%.2f"|format(run.scores.evaluation_score) }})
+                            </span>
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    {% for run in task.details.runs %}
+                    <div class="run-content {% if loop.index == 1 %}active{% endif %}"
+                         id="run-{{ task.task_id }}-{{ loop.index }}">
+
+                        {% if run.error %}
+                        <div class="error-message">
+                            <strong>Error:</strong> {{ run.error }}
+                        </div>
+                        {% endif %}
+
+                        {% if run.message %}
+                        <div class="message-box">
+                            <strong>Agent Message:</strong> {{ run.message }}
+                        </div>
+                        {% endif %}
+
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection('constraints-{{ task.task_id }}-{{ loop.index }}')">
+                                <span>📋 Agent-Parsed Constraints</span>
+                                <span class="toggle-icon" id="toggle-constraints-{{ task.task_id }}-{{ loop.index }}">▼</span>
+                            </div>
+                            <div id="constraints-{{ task.task_id }}-{{ loop.index }}" class="section-content collapsible expanded">
+                                <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9em;">
+                                    <strong>Note:</strong> These are the constraints that the agent's LLM extracted from the user prompt during the constraint parsing step. This shows how the agent interpreted the user's request.
+                                </div>
+                                <div class="constraints-grid">
+                                    <div class="constraint-box hard">
+                                        <div class="constraint-title">Hard Constraints (Non-negotiable)</div>
+                                        <ul class="constraint-list">
+                                            {% for item in run.constraints.hard %}
+                                            <li>{{ item }}</li>
+                                            {% else %}
+                                            <li>None</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="constraint-box soft">
+                                        <div class="constraint-title">Soft Constraints (Preferences)</div>
+                                        <ul class="constraint-list">
+                                            {% for item in run.constraints.soft %}
+                                            <li>{{ item }}</li>
+                                            {% else %}
+                                            <li>None</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="constraint-box assumption">
+                                        <div class="constraint-title">Assumptions (Inferred)</div>
+                                        <ul class="constraint-list">
+                                            {% for item in run.constraints.assumptions %}
+                                            <li>{{ item }}</li>
+                                            {% else %}
+                                            <li>None</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection('trace-{{ task.task_id }}-{{ loop.index }}')">
+                                <span>🔍 Agent Reasoning Trace</span>
+                                <span class="toggle-icon" id="toggle-trace-{{ task.task_id }}-{{ loop.index }}">▼</span>
+                            </div>
+                            <div id="trace-{{ task.task_id }}-{{ loop.index }}" class="section-content collapsible expanded">
+                                {% for trace_item in run.trace %}
+                                {% if trace_item.step != 'parse_constraints' %}
+                                <div class="trace-item">
+                                    <div class="trace-header" onclick="toggleSection('trace-detail-{{ task.task_id }}-{{ loop.index }}-{{ loop.index0 }}')">
+                                        <div>
+                                            <span class="trace-tool">{{ trace_item.tool }}</span>
+                                            {% if trace_item.turn %}
+                                            <span class="trace-turn">Turn {{ trace_item.turn }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="toggle-icon" id="toggle-trace-detail-{{ task.task_id }}-{{ loop.index }}-{{ loop.index0 }}">▼</span>
+                                    </div>
+                                    <div id="trace-detail-{{ task.task_id }}-{{ loop.index }}-{{ loop.index0 }}" class="trace-details collapsible expanded">
+                                        <strong>Input:</strong>
+                                        <div class="json-viewer">{{ trace_item.input | tojson(indent=2) }}</div>
+                                        <strong style="margin-top: 10px; display: block;">Output:</strong>
+                                        <div class="json-viewer">{{ trace_item.output | tojson(indent=2) }}</div>
+                                        {% if trace_item.tokens %}
+                                        <div style="margin-top: 10px; font-size: 0.85em; color: #666;">
+                                            Tokens: {{ trace_item.tokens.input_tokens }} in / {{ trace_item.tokens.output_tokens }} out
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="output-section">
+                            <div class="output-title">📤 Final Output</div>
+                            <div class="output-grid">
+                                {% if run.output.flights %}
+                                <div class="output-item">
+                                    <div class="output-label">Flights</div>
+                                    <div class="json-viewer">{{ run.output.flights | tojson(indent=2) }}</div>
+                                </div>
+                                {% endif %}
+                                {% if run.output.hotels %}
+                                <div class="output-item">
+                                    <div class="output-label">Hotels</div>
+                                    <div class="json-viewer">{{ run.output.hotels | tojson(indent=2) }}</div>
+                                </div>
+                                {% endif %}
+                                {% if run.output.activities %}
+                                <div class="output-item">
+                                    <div class="output-label">Activities</div>
+                                    <div class="json-viewer">{{ run.output.activities | tojson(indent=2) }}</div>
+                                </div>
+                                {% endif %}
+                                <div class="output-item">
+                                    <div class="output-label">Total Cost</div>
+                                    <div class="output-value">${{ run.output.total_cost }}</div>
+                                </div>
+                                {% if run.output.check_in %}
+                                <div class="output-item">
+                                    <div class="output-label">Check-in</div>
+                                    <div class="output-value">{{ run.output.check_in }}</div>
+                                </div>
+                                {% endif %}
+                                {% if run.output.check_out %}
+                                <div class="output-item">
+                                    <div class="output-label">Check-out</div>
+                                    <div class="output-value">{{ run.output.check_out }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection('ground-truth-{{ task.task_id }}-{{ loop.index }}')">
+                                <span>🎯 Ground Truth & Benchmark Comparison</span>
+                                <span class="toggle-icon" id="toggle-ground-truth-{{ task.task_id }}-{{ loop.index }}">▼</span>
+                            </div>
+                            <div id="ground-truth-{{ task.task_id }}-{{ loop.index }}" class="section-content collapsible expanded">
+                                <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9em;">
+                                    <strong>What is Ground Truth?</strong> Ground truth represents the correct/optimal answer that the benchmark expects. The optimal price is found dynamically via SQL <code>MIN(price)</code> queries on the database.
+                                </div>
+                                <div class="output-grid">
+                                    {% if task.details.task_info.ground_truth %}
+                                    <div class="output-item">
+                                        <div class="output-label">Expected Ground Truth (from benchmark definition)</div>
+                                        <div class="json-viewer">{{ task.details.task_info.ground_truth | tojson(indent=2) }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if task.details.task_info.constraints %}
+                                    <div class="output-item">
+                                        <div class="output-label">Benchmark Task Constraints (internal)</div>
+                                        <div class="json-viewer">{{ task.details.task_info.constraints | tojson(indent=2) }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if run.score_details.constraint_satisfaction.optimal_price %}
+                                    <div class="output-item">
+                                        <div class="output-label">🔍 Optimal Price (SQL: MIN(price) for route/date)</div>
+                                        <div class="output-value" style="color: #28a745; font-weight: bold;">${{ run.score_details.constraint_satisfaction.optimal_price }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if run.score_details.budget_efficiency.agent_cost %}
+                                    <div class="output-item">
+                                        <div class="output-label">Agent Selected Price</div>
+                                        <div class="output-value" style="{% if run.score_details.constraint_satisfaction.optimal_price and run.score_details.budget_efficiency.agent_cost == run.score_details.constraint_satisfaction.optimal_price %}color: #28a745; font-weight: bold;{% endif %}">${{ run.score_details.budget_efficiency.agent_cost }}</div>
+                                    </div>
+                                    {% endif %}
+                                    {% if run.score_details.budget_efficiency.budget %}
+                                    <div class="output-item">
+                                        <div class="output-label">Budget (hardcoded: max(optimal × 10, $5000))</div>
+                                        <div class="output-value">${{ run.score_details.budget_efficiency.budget }}</div>
+                                    </div>
+                                    {% endif %}
+                                    <div class="output-item">
+                                        <div class="output-label">Constraints Satisfied</div>
+                                        <div class="output-value" style="{% if run.score_details.constraint_satisfaction.met_constraints == run.score_details.constraint_satisfaction.total_constraints %}color: #28a745; font-weight: bold;{% else %}color: #dc3545; font-weight: bold;{% endif %}">
+                                            {{ run.score_details.constraint_satisfaction.met_constraints }} /
+                                            {{ run.score_details.constraint_satisfaction.total_constraints }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <div class="section-header" onclick="toggleSection('eval-{{ task.task_id }}-{{ loop.index }}')">
+                                <span>📊 Evaluation Details</span>
+                                <span class="toggle-icon" id="toggle-eval-{{ task.task_id }}-{{ loop.index }}">▼</span>
+                            </div>
+                            <div id="eval-{{ task.task_id }}-{{ loop.index }}" class="section-content collapsible collapsed">
+                                <div class="json-viewer">{{ run.score_details | tojson(indent=2) }}</div>
+                            </div>
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <script>
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const toggle = document.getElementById('toggle-' + sectionId);
+
+            if (section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+                section.classList.add('expanded');
+                toggle.textContent = '▼';
+            } else {
+                section.classList.remove('expanded');
+                section.classList.add('collapsed');
+                toggle.textContent = '▶';
+            }
+        }
+
+        function showRun(taskId, runIndex) {
+            // Hide all run contents for this task
+            const allRuns = document.querySelectorAll(`[id^="run-${taskId}-"]`);
+            allRuns.forEach(run => run.classList.remove('active'));
+
+            // Hide all run tabs for this task
+            const taskCard = event.target.closest('.task-card');
+            const allTabs = taskCard.querySelectorAll('.run-tab');
+            allTabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected run
+            document.getElementById(`run-${taskId}-${runIndex}`).classList.add('active');
+            event.target.closest('.run-tab').classList.add('active');
+        }
+    </script>
+</body>
+</html>

@@ -4,7 +4,7 @@ from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--seed",    type=int, default=42)
-parser.add_argument("--db",      default="data/mindy_dataset.db")
+parser.add_argument("--db",      default="data/mindy_dataset_v3.db")
 parser.add_argument("--csv-dir", default="data/csvs")
 parser.add_argument("--days",    type=int, default=10, help="Number of days of data to generate")
 args = parser.parse_args()
