@@ -437,76 +437,6 @@
         </header>
 
         {% if results %}
-        <div class="task-card">
-            <div class="task-header" onclick="toggleSection('scoring-methodology')">
-                <div>
-                    <span class="task-title">📖 Scoring Methodology</span>
-                </div>
-                <span class="toggle-icon" id="toggle-scoring-methodology">▼</span>
-            </div>
-            <div id="scoring-methodology" class="collapsible expanded" style="padding: 20px;">
-                <h3 style="color: #06c; margin-bottom: 15px;">How Scores Are Calculated</h3>
-
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">1. Constraint Satisfaction (CS) - 0.0 to 1.0</h4>
-                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>CS = met_constraints / total_constraints</code></p>
-                    <p style="margin-bottom: 10px;">Measures how well the agent satisfies task requirements. Each task has success criteria (e.g., "must_have_flight", "correct_route", "is_cheapest"). The benchmark:</p>
-                    <ul style="margin-left: 20px; margin-bottom: 10px;">
-                        <li>Counts total criteria defined in the task</li>
-                        <li>Queries the database to verify each criterion</li>
-                        <li>For "is_cheapest": Runs <code>SELECT MIN(price)</code> SQL query to find optimal price</li>
-                        <li>Awards 1 point per satisfied constraint</li>
-                    </ul>
-                    <p><em>Example:</em> 4 out of 5 constraints met → CS = 0.8</p>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">2. Budget Efficiency (BE) - 0.0 to 1.0</h4>
-                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>BE = 1.0 - ((agent_cost - optimal_cost) / budget)</code></p>
-                    <p style="margin-bottom: 10px;">Measures cost-effectiveness of the agent's solution:</p>
-                    <ul style="margin-left: 20px; margin-bottom: 10px;">
-                        <li><strong>agent_cost:</strong> Total cost of the agent's selected items</li>
-                        <li><strong>optimal_cost:</strong> Cheapest possible cost (from SQL MIN query)</li>
-                        <li><strong>budget:</strong> Currently hardcoded as <code>max(optimal_cost × 10, $5000)</code></li>
-                        <li>If agent exceeds budget → BE = 0.0</li>
-                        <li>Score clamped between 0.0 and 1.0</li>
-                    </ul>
-                    <p><em>Example:</em> Optimal: $200, Agent: $300, Budget: $2000 → BE = 1.0 - ((300-200)/2000) = 0.95</p>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">3. Logistics Score (LS) - 0.0 to 1.0</h4>
-                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> Starts at 1.0, deducts points for violations</p>
-                    <p style="margin-bottom: 10px;">Measures logical consistency and catches errors:</p>
-                    <ul style="margin-left: 20px; margin-bottom: 10px;">
-                        <li><strong>-0.3:</strong> Agent error occurred</li>
-                        <li><strong>-0.2:</strong> Check-out date not after check-in date</li>
-                        <li><strong>-0.1:</strong> Hotel nights mismatch (calculated vs reported)</li>
-                        <li><strong>-0.1:</strong> Invalid date format</li>
-                        <li>Score clamped to minimum of 0.0</li>
-                    </ul>
-                    <p><em>Example:</em> No violations → LS = 1.0; Date error + nights mismatch → LS = 0.8</p>
-                </div>
-
-                <div style="margin-bottom: 25px;">
-                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">4. Evaluation Score (Composite)</h4>
-                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>S = (0.5 × CS) + (0.3 × BE) + (0.2 × LS)</code></p>
-                    <p style="margin-bottom: 10px;">Weighted combination of all three metrics:</p>
-                    <ul style="margin-left: 20px; margin-bottom: 10px;">
-                        <li><strong>50% weight:</strong> Constraint Satisfaction (most important)</li>
-                        <li><strong>30% weight:</strong> Budget Efficiency</li>
-                        <li><strong>20% weight:</strong> Logistics Score</li>
-                    </ul>
-                    <p style="margin-bottom: 10px;"><strong>Pass Threshold:</strong> ≥ 0.75</p>
-                    <p><em>Example:</em> CS=0.8, BE=0.95, LS=1.0 → S = (0.5×0.8) + (0.3×0.95) + (0.2×1.0) = 0.885 ✓ PASS</p>
-                </div>
-
-                <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
-                    <strong>Note:</strong> Each task is run multiple times (default: 3 runs) and scores are averaged to account for variability in agent performance.
-                </div>
-            </div>
-        </div>
-
         {% for task in results.task_results %}
         <div class="task-card">
             <div class="task-header" onclick="toggleSection('task-{{ task.task_id }}')">
@@ -726,49 +656,108 @@
 
                         <div class="section">
                             <div class="section-header" onclick="toggleSection('ground-truth-{{ task.task_id }}-{{ loop.index }}')">
-                                <span>🎯 Ground Truth & Benchmark Comparison</span>
+                                <span>🎯 Ground Truth vs Agent Response</span>
                                 <span class="toggle-icon" id="toggle-ground-truth-{{ task.task_id }}-{{ loop.index }}">▼</span>
                             </div>
                             <div id="ground-truth-{{ task.task_id }}-{{ loop.index }}" class="section-content collapsible expanded">
                                 <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9em;">
-                                    <strong>What is Ground Truth?</strong> Ground truth represents the correct/optimal answer that the benchmark expects. The optimal price is found dynamically via SQL <code>MIN(price)</code> queries on the database.
+                                    <strong>What is Ground Truth?</strong> Ground truth represents the correct/optimal answer that the benchmark expects. For price optimization, the optimal price is found dynamically via SQL <code>MIN(price)</code> queries on the database.
                                 </div>
-                                <div class="output-grid">
+
+                                <!-- Expected Ground Truth -->
+                                <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #06c;">
+                                    <h4 style="margin-bottom: 10px; color: #06c;">📋 Expected Ground Truth</h4>
                                     {% if task.details.task_info.ground_truth %}
-                                    <div class="output-item">
-                                        <div class="output-label">Expected Ground Truth (from benchmark definition)</div>
-                                        <div class="json-viewer">{{ task.details.task_info.ground_truth | tojson(indent=2) }}</div>
-                                    </div>
+                                    <div class="json-viewer">{{ task.details.task_info.ground_truth | tojson(indent=2) }}</div>
                                     {% endif %}
-                                    {% if task.details.task_info.constraints %}
-                                    <div class="output-item">
-                                        <div class="output-label">Benchmark Task Constraints (internal)</div>
+                                    {% if task.details.task_info.constraints and task.details.task_info.constraints %}
+                                    <div style="margin-top: 10px;">
+                                        <strong>Task Constraints:</strong>
                                         <div class="json-viewer">{{ task.details.task_info.constraints | tojson(indent=2) }}</div>
                                     </div>
                                     {% endif %}
-                                    {% if run.score_details.constraint_satisfaction.optimal_price %}
-                                    <div class="output-item">
-                                        <div class="output-label">🔍 Optimal Price (SQL: MIN(price) for route/date)</div>
-                                        <div class="output-value" style="color: #28a745; font-weight: bold;">${{ run.score_details.constraint_satisfaction.optimal_price }}</div>
+                                </div>
+
+                                <!-- What Agent Returned -->
+                                <div style="background: #fff9e6; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                                    <h4 style="margin-bottom: 10px; color: #856404;">🤖 What Agent Returned</h4>
+
+                                    {% if run.message %}
+                                    <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #17a2b8;">
+                                        <div class="output-label">Agent Message</div>
+                                        <div style="margin-top: 8px; font-style: italic;">"{{ run.message }}"</div>
                                     </div>
                                     {% endif %}
-                                    {% if run.score_details.budget_efficiency.agent_cost %}
-                                    <div class="output-item">
-                                        <div class="output-label">Agent Selected Price</div>
-                                        <div class="output-value" style="{% if run.score_details.constraint_satisfaction.optimal_price and run.score_details.budget_efficiency.agent_cost == run.score_details.constraint_satisfaction.optimal_price %}color: #28a745; font-weight: bold;{% endif %}">${{ run.score_details.budget_efficiency.agent_cost }}</div>
+
+                                    <div class="output-grid">
+                                        {% if run.output.flights %}
+                                        <div class="output-item" style="border-left-color: #ffc107;">
+                                            <div class="output-label">Flights ({{ run.output.flights|length }})</div>
+                                            <div class="json-viewer">{{ run.output.flights | tojson(indent=2) }}</div>
+                                        </div>
+                                        {% endif %}
+                                        {% if run.output.hotels %}
+                                        <div class="output-item" style="border-left-color: #ffc107;">
+                                            <div class="output-label">Hotels ({{ run.output.hotels|length }})</div>
+                                            <div class="json-viewer">{{ run.output.hotels | tojson(indent=2) }}</div>
+                                        </div>
+                                        {% endif %}
+                                        {% if run.output.activities %}
+                                        <div class="output-item" style="border-left-color: #ffc107;">
+                                            <div class="output-label">Activities ({{ run.output.activities|length }})</div>
+                                            <div class="json-viewer">{{ run.output.activities | tojson(indent=2) }}</div>
+                                        </div>
+                                        {% endif %}
+                                        <div class="output-item" style="border-left-color: #ffc107;">
+                                            <div class="output-label">Total Cost</div>
+                                            <div class="output-value">${{ run.output.total_cost }}</div>
+                                        </div>
+                                        {% if run.output.hotel_nights %}
+                                        <div class="output-item" style="border-left-color: #ffc107;">
+                                            <div class="output-label">Hotel Nights</div>
+                                            <div class="output-value">{{ run.output.hotel_nights }} nights</div>
+                                        </div>
+                                        {% endif %}
                                     </div>
-                                    {% endif %}
-                                    {% if run.score_details.budget_efficiency.budget %}
-                                    <div class="output-item">
-                                        <div class="output-label">Budget (hardcoded: max(optimal × 10, $5000))</div>
-                                        <div class="output-value">${{ run.score_details.budget_efficiency.budget }}</div>
-                                    </div>
-                                    {% endif %}
-                                    <div class="output-item">
-                                        <div class="output-label">Constraints Satisfied</div>
-                                        <div class="output-value" style="{% if run.score_details.constraint_satisfaction.met_constraints == run.score_details.constraint_satisfaction.total_constraints %}color: #28a745; font-weight: bold;{% else %}color: #dc3545; font-weight: bold;{% endif %}">
-                                            {{ run.score_details.constraint_satisfaction.met_constraints }} /
-                                            {{ run.score_details.constraint_satisfaction.total_constraints }}
+                                </div>
+
+                                <!-- Comparison Results -->
+                                <div style="background: #f0fff4; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+                                    <h4 style="margin-bottom: 10px; color: #155724;">✅ Benchmark Comparison Results</h4>
+                                    <div class="output-grid">
+                                        {% if run.score_details.constraint_satisfaction.optimal_price %}
+                                        <div class="output-item">
+                                            <div class="output-label">🔍 Optimal Price (from SQL)</div>
+                                            <div class="output-value" style="color: #28a745; font-weight: bold;">${{ run.score_details.constraint_satisfaction.optimal_price }}</div>
+                                        </div>
+                                        <div class="output-item">
+                                            <div class="output-label">Agent's Price</div>
+                                            <div class="output-value" style="{% if run.score_details.budget_efficiency.agent_cost == run.score_details.constraint_satisfaction.optimal_price %}color: #28a745; font-weight: bold;{% else %}color: #856404;{% endif %}">${{ run.score_details.budget_efficiency.agent_cost }}</div>
+                                        </div>
+                                        {% endif %}
+
+                                        {% if run.score_details.budget_efficiency.budget %}
+                                        <div class="output-item">
+                                            <div class="output-label">Budget Limit {% if run.score_details.budget_efficiency.budget_source %}({{ run.score_details.budget_efficiency.budget_source }}){% endif %}</div>
+                                            <div class="output-value">${{ run.score_details.budget_efficiency.budget }}</div>
+                                        </div>
+                                        {% endif %}
+
+                                        {% if run.score_details.constraint_satisfaction.budget_used %}
+                                        <div class="output-item">
+                                            <div class="output-label">Budget Used / Limit</div>
+                                            <div class="output-value" style="{% if run.score_details.constraint_satisfaction.within_budget %}color: #28a745;{% else %}color: #dc3545;{% endif %}">
+                                                ${{ run.score_details.constraint_satisfaction.budget_used }} / ${{ run.score_details.constraint_satisfaction.budget_limit }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="output-item">
+                                            <div class="output-label">Constraints Satisfied</div>
+                                            <div class="output-value" style="{% if run.score_details.constraint_satisfaction.met_constraints == run.score_details.constraint_satisfaction.total_constraints %}color: #28a745; font-weight: bold;{% else %}color: #dc3545; font-weight: bold;{% endif %}">
+                                                {{ run.score_details.constraint_satisfaction.met_constraints }} / {{ run.score_details.constraint_satisfaction.total_constraints }}
+                                                {% if run.score_details.constraint_satisfaction.met_constraints == run.score_details.constraint_satisfaction.total_constraints %}✓{% else %}✗{% endif %}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -792,6 +781,83 @@
             </div>
         </div>
         {% endfor %}
+
+        <div class="task-card">
+            <div class="task-header" onclick="toggleSection('scoring-methodology')">
+                <div>
+                    <span class="task-title">Scoring Methodology</span>
+                </div>
+                <span class="toggle-icon" id="toggle-scoring-methodology">▼</span>
+            </div>
+            <div id="scoring-methodology" class="collapsible expanded" style="padding: 20px;">
+                <h3 style="color: #06c; margin-bottom: 15px;">How Scores Are Calculated</h3>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">1. Constraint Satisfaction (CS) - 0.0 to 1.0</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>CS = met_constraints / total_constraints</code></p>
+                    <p style="margin-bottom: 10px;">Measures how well the agent satisfies task requirements. Each task has success criteria (e.g., "must_have_flight", "correct_route", "is_cheapest", "is_nonstop", "asks_for_clarification"). The benchmark:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li>Counts total criteria defined in the task</li>
+                        <li>Queries the database to verify each criterion</li>
+                        <li>For "is_cheapest": Runs <code>SELECT MIN(price)</code> SQL query to find optimal price</li>
+                        <li>For "is_nonstop": Checks if <code>stops = 0</code> in the flight data</li>
+                        <li>For "asks_for_clarification": Checks if agent's message contains questions or requests for missing info</li>
+                        <li>For "long_hotel_stay": Verifies hotel nights match expected duration (e.g., 13 nights for 2-week trip)</li>
+                        <li>For "has_multiple_activities": Checks minimum activity count for long trips</li>
+                        <li>Awards 1 point per satisfied constraint</li>
+                    </ul>
+                    <p><em>Example 1:</em> 4 out of 5 constraints met = CS 0.8</p>
+                    <p><em>Example 2 (Clarification):</em> Agent asks "When are you planning to travel?" = asks_for_clarification True</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">2. Budget Efficiency (BE) - 0.0 to 1.0</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>BE = 1.0 - ((agent_cost - optimal_cost) / budget)</code></p>
+                    <p style="margin-bottom: 10px;">Measures cost-effectiveness of the agent's solution:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li><strong>agent_cost:</strong> Total cost of the agent's selected items (flights + hotels + activities)</li>
+                        <li><strong>optimal_cost:</strong> Cheapest possible cost (from SQL MIN query)</li>
+                        <li><strong>budget:</strong> Uses task's <code>max_budget</code> constraint if specified, otherwise defaults to <code>max(optimal_cost × 10, $5000)</code></li>
+                        <li>If agent exceeds budget = BE 0.0</li>
+                        <li>Score clamped between 0.0 and 1.0</li>
+                    </ul>
+                    <p style="margin-bottom: 10px;"><em>Example 1 (with task budget):</em> Budget: $800, Agent: $750 = Within budget, BE score calculated</p>
+                    <p><em>Example 2 (no task budget):</em> Optimal: $200, Agent: $300, Default Budget: $2000 = BE 1.0 - ((300-200)/2000) = 0.95</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">3. Logistics Score (LS) - 0.0 to 1.0</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> Starts at 1.0, deducts points for violations</p>
+                    <p style="margin-bottom: 10px;">Measures logical consistency and catches errors:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li><strong>-0.3:</strong> Agent error occurred</li>
+                        <li><strong>-0.2:</strong> Check-out date not after check-in date</li>
+                        <li><strong>-0.1:</strong> Hotel nights mismatch (calculated vs reported)</li>
+                        <li><strong>-0.1:</strong> Invalid date format</li>
+                        <li>Score clamped to minimum of 0.0</li>
+                    </ul>
+                    <p><em>Example:</em> No violations = LS 1.0; Date error + nights mismatch = LS 0.8</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1d1d1f; margin-bottom: 10px;">4. Evaluation Score (Composite)</h4>
+                    <p style="margin-bottom: 10px;"><strong>Formula:</strong> <code>S = (0.5 × CS) + (0.3 × BE) + (0.2 × LS)</code></p>
+                    <p style="margin-bottom: 10px;">Weighted combination of all three metrics:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 10px;">
+                        <li><strong>50% weight:</strong> Constraint Satisfaction (most important)</li>
+                        <li><strong>30% weight:</strong> Budget Efficiency</li>
+                        <li><strong>20% weight:</strong> Logistics Score</li>
+                    </ul>
+                    <p style="margin-bottom: 10px;"><strong>Pass Threshold:</strong> 0.75 or higher</p>
+                    <p><em>Example:</em> CS=0.8, BE=0.95, LS=1.0 = S (0.5×0.8) + (0.3×0.95) + (0.2×1.0) = 0.885 PASS</p>
+                </div>
+
+                <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+                    <strong>Note:</strong> Each task is run multiple times (default: 3 runs) and scores are averaged to account for variability in agent performance.
+                </div>
+            </div>
+        </div>
+
         {% endif %}
     </div>
 

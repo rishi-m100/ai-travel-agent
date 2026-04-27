@@ -123,6 +123,197 @@ EASY_TASKS = [
             "has_availability": True
         }
     ),
+
+    BenchmarkTask(
+        task_id="easy_04",
+        name="Find Non-Stop Flight",
+        user_prompt="I need a non-stop flight from San Francisco (SFO) to Boston (BOS) on June 10th, 2025.",
+        constraints={},
+        ground_truth={
+            "type": "flight",
+            "origin_city": "San Francisco",
+            "destination_city": "Boston",
+            "date": "2025-06-10",
+            "origin": "SFO",
+            "destination": "BOS",
+            "max_stops": 0
+        },
+        success_criteria={
+            "must_have_flight": True,
+            "correct_route": True,
+            "correct_date": True,
+            "is_nonstop": True,
+            "has_availability": True
+        }
+    ),
+]
+
+# MEDIUM BENCHMARK TASKS (4 tasks)
+
+MEDIUM_TASKS = [
+    BenchmarkTask(
+        task_id="medium_01",
+        name="Weekend Trip with Budget - Flight and Hotel",
+        user_prompt="I'm in Chicago and need a flight to Miami plus a hotel for a weekend trip (June 10-12, 2025). My total budget is $800.",
+        constraints={"max_budget": 800},
+        ground_truth={
+            "type": "multi",
+            "origin_city": "Chicago",
+            "origin": "ORD",
+            "destination_city": "Miami",
+            "destination": "MIA",
+            "date": "2025-06-10",
+            "check_in": "2025-06-10",
+            "check_out": "2025-06-12",
+            "hotel_nights": 2
+        },
+        success_criteria={
+            "must_have_flight": True,
+            "must_have_hotel": True,
+            "correct_destination": True,
+            "correct_dates": True,
+            "within_budget": True,
+            "has_availability": True
+        }
+    ),
+
+    BenchmarkTask(
+        task_id="medium_02",
+        name="Multi-Constraint Trip - Hotel Amenity and Activities",
+        user_prompt="I'm in Los Angeles and want to plan a 2-day relaxing trip to Denver (June 10-12, 2025). I need a flight, a hotel with a pool, and some wellness activities. Budget is $1,000.",
+        constraints={"max_budget": 1000},
+        ground_truth={
+            "type": "multi",
+            "origin_city": "Los Angeles",
+            "origin": "LAX",
+            "destination_city": "Denver",
+            "destination": "DEN",
+            "date": "2025-06-10",
+            "city": "Denver",
+            "check_in": "2025-06-10",
+            "check_out": "2025-06-12",
+            "hotel_nights": 2,
+            "required_amenity": "pool",
+            "activity_category": "wellness"
+        },
+        success_criteria={
+            "must_have_flight": True,
+            "must_have_hotel": True,
+            "correct_destination": True,
+            "correct_dates": True,
+            "has_required_amenity": True,
+            "has_activities": True,
+            "within_budget": True,
+            "has_availability": True
+        }
+    ),
+
+    BenchmarkTask(
+        task_id="medium_03",
+        name="Business Trip with Time Constraint",
+        user_prompt="I'm in Philadelphia and have a meeting in Boston at 2 PM on June 10th, 2025. I need a flight from Philadelphia (PHL) that gets me there by noon and a hotel near the airport.",
+        constraints={},
+        ground_truth={
+            "type": "multi",
+            "origin_city": "Philadelphia",
+            "origin": "PHL",
+            "destination_city": "Boston",
+            "destination": "BOS",
+            "date": "2025-06-10",
+            "max_arrival_time": "12:00"
+        },
+        success_criteria={
+            "must_have_flight": True,
+            "must_have_hotel": True,
+            "correct_destination": True,
+            "correct_date": True,
+            "arrives_on_time": True,
+            "has_availability": True
+        }
+    ),
+
+    BenchmarkTask(
+        task_id="medium_04",
+        name="Family Trip with Multiple Activities",
+        user_prompt="We're in Boston and want to plan a 3-day family trip to Orlando (June 10-13, 2025). We need a flight, hotel, and 2 fun activities for kids. Our budget is $2,500.",
+        constraints={"max_budget": 2500},
+        ground_truth={
+            "type": "multi",
+            "origin_city": "Boston",
+            "origin": "BOS",
+            "destination_city": "Orlando",
+            "destination": "MCO",
+            "date": "2025-06-10",
+            "city": "Orlando",
+            "check_in": "2025-06-10",
+            "check_out": "2025-06-13",
+            "hotel_nights": 3,
+            "min_activities": 2
+        },
+        success_criteria={
+            "must_have_flight": True,
+            "must_have_hotel": True,
+            "correct_destination": True,
+            "correct_dates": True,
+            "has_min_activities": True,
+            "within_budget": True,
+            "has_availability": True
+        }
+    ),
+]
+
+# HARD BENCHMARK TASKS (2 tasks)
+
+HARD_TASKS = [
+    BenchmarkTask(
+        task_id="hard_01",
+        name="Multi-Turn Clarification Test - Ambiguous Request",
+        user_prompt="I need a trip to Miami.",
+        constraints={},
+        ground_truth={
+            "type": "clarification",
+            "destination_city": "Miami",
+            "destination": "MIA",
+            # Agent should ASK for: origin, dates, budget, preferences
+            "requires_clarification": True
+        },
+        success_criteria={
+            "asks_for_clarification": True,
+            "mentions_missing_info": True,
+            "minimal_assumptions": True
+        }
+    ),
+
+    BenchmarkTask(
+        task_id="hard_02",
+        name="Long Horizon Planning - 2 Week Trip",
+        user_prompt="I'm planning a 2-week trip to Florida (Miami) from Chicago. My budget is $5,000. I want to arrive on June 10th, 2025.",
+        constraints={"max_budget": 5000},
+        ground_truth={
+            "type": "multi",
+            "origin_city": "Chicago",
+            "origin": "ORD",
+            "destination_city": "Miami",
+            "destination": "MIA",
+            "date": "2025-06-10",
+            "city": "Miami",
+            "check_in": "2025-06-10",
+            "check_out": "2025-06-23",
+            "hotel_nights": 13,
+            "min_activities": 5,
+            "trip_duration_days": 14
+        },
+        success_criteria={
+            "must_have_flight": True,
+            "must_have_hotel": True,
+            "correct_destination": True,
+            "correct_dates": True,
+            "long_hotel_stay": True,
+            "has_multiple_activities": True,
+            "within_budget": True,
+            "has_availability": True
+        }
+    ),
 ]
 
 # SCORING FUNCTIONS
@@ -231,6 +422,16 @@ def calculate_constraint_satisfaction(
                         else:
                             details["arrives_on_time"] = False
 
+                    # Non-stop check
+                    if criteria.get("is_nonstop"):
+                        max_stops = task.ground_truth.get("max_stops", 0)
+                        if flight_row["stops"] <= max_stops:
+                            met_constraints += 1
+                            details["is_nonstop"] = True
+                        else:
+                            details["is_nonstop"] = False
+                            details["actual_stops"] = flight_row["stops"]
+
                     # Availability
                     if criteria.get("has_availability"):
                         if flight_row["seats_available"] > 0:
@@ -296,6 +497,261 @@ def calculate_constraint_satisfaction(
                             details["has_availability"] = False
                             details["correct_date"] = False
 
+        elif task.ground_truth["type"] == "multi":
+            # Multi-type tasks (flight + hotel + activities)
+            flights = output.get("flights", [])
+            hotels = output.get("hotels", [])
+            activities = output.get("activities", [])
+
+            # Check if required items exist
+            if criteria.get("must_have_flight"):
+                if flights:
+                    met_constraints += 1
+                    details["has_flight"] = True
+                else:
+                    details["has_flight"] = False
+
+            if criteria.get("must_have_hotel"):
+                if hotels:
+                    met_constraints += 1
+                    details["has_hotel"] = True
+                else:
+                    details["has_hotel"] = False
+
+            # Check hotel for multi-tasks
+            if hotels:
+                hotel_id = hotels[0]["id"] if isinstance(hotels[0], dict) else hotels[0]
+                hotel_row = conn.execute(
+                    "SELECT * FROM hotels WHERE hotel_id = ?",
+                    (hotel_id,)
+                ).fetchone()
+
+                if hotel_row:
+                    # Correct city
+                    if criteria.get("correct_city"):
+                        if hotel_row["city"] == task.ground_truth.get("city"):
+                            met_constraints += 1
+                            details["correct_city"] = True
+                        else:
+                            details["correct_city"] = False
+
+                    # Correct destination (for flight tasks)
+                    if criteria.get("correct_destination"):
+                        if hotel_row["city"] == task.ground_truth.get("destination_city"):
+                            met_constraints += 1
+                            details["correct_destination"] = True
+                        else:
+                            details["correct_destination"] = False
+
+                    # Has required amenity (pool, etc.)
+                    if criteria.get("has_required_amenity"):
+                        required_amenity = task.ground_truth.get("required_amenity", "")
+                        amenities_str = hotel_row["amenities"] or ""
+                        if required_amenity.lower() in amenities_str.lower():
+                            met_constraints += 1
+                            details["has_required_amenity"] = True
+                        else:
+                            details["has_required_amenity"] = False
+
+                    # Date check for hotels
+                    if criteria.get("correct_dates"):
+                        check_in = task.ground_truth.get("check_in")
+                        check_out = task.ground_truth.get("check_out")
+                        avail = conn.execute(
+                            """SELECT 1 FROM hotel_availability
+                               WHERE hotel_id = ?
+                                 AND check_in <= ?
+                                 AND check_out >= ?
+                                 AND rooms_left > 0""",
+                            (hotel_id, check_in, check_out)
+                        ).fetchone()
+
+                        if avail:
+                            met_constraints += 1
+                            details["correct_dates"] = True
+                        else:
+                            details["correct_dates"] = False
+
+            # Check flight for multi-tasks
+            if flights:
+                flight_id = flights[0]["id"] if isinstance(flights[0], dict) else flights[0]
+                flight_row = conn.execute(
+                    """SELECT f.*, ao.city as origin_city, ad.city as destination_city
+                       FROM flights f
+                       JOIN airports ao ON f.origin = ao.iata
+                       JOIN airports ad ON f.destination = ad.iata
+                       WHERE f.flight_id = ?""",
+                    (flight_id,)
+                ).fetchone()
+
+                if flight_row:
+                    # Correct destination (includes route check)
+                    if criteria.get("correct_destination"):
+                        dest_city = task.ground_truth.get("destination_city")
+                        origin_city = task.ground_truth.get("origin_city")
+
+                        # Check destination matches
+                        dest_match = (flight_row["destination_city"] == dest_city or
+                                     flight_row["destination"] == task.ground_truth.get("destination"))
+
+                        # Check origin matches if specified
+                        origin_match = True
+                        if origin_city:
+                            origin_match = (flight_row["origin_city"] == origin_city or
+                                          flight_row["origin"] == task.ground_truth.get("origin"))
+
+                        if dest_match and origin_match:
+                            met_constraints += 1
+                            details["correct_destination"] = True
+                        else:
+                            details["correct_destination"] = False
+                            if not origin_match:
+                                details["wrong_origin"] = f"Expected {origin_city}, got {flight_row['origin_city']}"
+                            if not dest_match:
+                                details["wrong_destination"] = f"Expected {dest_city}, got {flight_row['destination_city']}"
+
+                    # Correct date
+                    if criteria.get("correct_date"):
+                        if flight_row["depart_date"] == task.ground_truth.get("date"):
+                            met_constraints += 1
+                            details["correct_date"] = True
+                        else:
+                            details["correct_date"] = False
+
+                    # Time constraint
+                    if criteria.get("arrives_on_time"):
+                        max_time = task.ground_truth.get("max_arrival_time")
+                        if flight_row["arrive_time"] <= max_time:
+                            met_constraints += 1
+                            details["arrives_on_time"] = True
+                        else:
+                            details["arrives_on_time"] = False
+
+            # Check activities
+            if criteria.get("has_activities"):
+                if activities:
+                    met_constraints += 1
+                    details["has_activities"] = True
+                else:
+                    details["has_activities"] = False
+
+            if criteria.get("has_min_activities"):
+                min_activities = task.ground_truth.get("min_activities", 1)
+                if len(activities) >= min_activities:
+                    met_constraints += 1
+                    details["has_min_activities"] = True
+                    details["actual_activities"] = len(activities)
+                else:
+                    details["has_min_activities"] = False
+                    details["actual_activities"] = len(activities)
+
+            # Availability check for multi
+            if criteria.get("has_availability"):
+                # This is already checked in hotel/flight sections above
+                # Just mark as true if we got this far
+                if (not criteria.get("must_have_hotel") or hotels) and (not criteria.get("must_have_flight") or flights):
+                    met_constraints += 1
+                    details["has_availability"] = True
+                else:
+                    details["has_availability"] = False
+
+            # Budget check for multi-type tasks
+            if criteria.get("within_budget"):
+                total_cost = output.get("total_cost", 0)
+                max_budget = task.constraints.get("max_budget", float('inf'))
+                if total_cost <= max_budget:
+                    met_constraints += 1
+                    details["within_budget"] = True
+                    details["budget_used"] = total_cost
+                    details["budget_limit"] = max_budget
+                else:
+                    details["within_budget"] = False
+                    details["budget_used"] = total_cost
+                    details["budget_limit"] = max_budget
+
+            # Long hotel stay check (for 2-week trips, etc.)
+            if criteria.get("long_hotel_stay"):
+                expected_nights = task.ground_truth.get("hotel_nights", 0)
+                actual_nights = output.get("hotel_nights", 0)
+                # Allow some flexibility (within 1 night)
+                if abs(actual_nights - expected_nights) <= 1:
+                    met_constraints += 1
+                    details["long_hotel_stay"] = True
+                    details["expected_nights"] = expected_nights
+                    details["actual_nights"] = actual_nights
+                else:
+                    details["long_hotel_stay"] = False
+                    details["expected_nights"] = expected_nights
+                    details["actual_nights"] = actual_nights
+
+            # Multiple activities check (for long trips)
+            if criteria.get("has_multiple_activities"):
+                min_activities = task.ground_truth.get("min_activities", 5)
+                actual_activities = len(activities)
+                if actual_activities >= min_activities:
+                    met_constraints += 1
+                    details["has_multiple_activities"] = True
+                    details["min_activities"] = min_activities
+                    details["actual_activities"] = actual_activities
+                else:
+                    details["has_multiple_activities"] = False
+                    details["min_activities"] = min_activities
+                    details["actual_activities"] = actual_activities
+
+        elif task.ground_truth["type"] == "clarification":
+            # Clarification task - agent should ASK for more info, not make assumptions
+            message = agent_output.get("message", "")
+
+            # Check if agent asks for clarification
+            if criteria.get("asks_for_clarification"):
+                # Look for question marks or clarifying phrases
+                clarifying_phrases = [
+                    "?", "when", "where", "what", "which", "how many",
+                    "could you", "can you", "please provide", "need to know",
+                    "clarify", "specify", "tell me more", "more information"
+                ]
+                asks_questions = any(phrase in message.lower() for phrase in clarifying_phrases)
+
+                if asks_questions:
+                    met_constraints += 1
+                    details["asks_for_clarification"] = True
+                    details["message_snippet"] = message[:200]
+                else:
+                    details["asks_for_clarification"] = False
+                    details["message_snippet"] = message[:200]
+
+            # Check if agent mentions missing information
+            if criteria.get("mentions_missing_info"):
+                missing_info_phrases = [
+                    "missing", "need", "require", "don't have", "haven't specified",
+                    "date", "budget", "origin", "depart", "return", "when are you"
+                ]
+                mentions_missing = any(phrase in message.lower() for phrase in missing_info_phrases)
+
+                if mentions_missing:
+                    met_constraints += 1
+                    details["mentions_missing_info"] = True
+                else:
+                    details["mentions_missing_info"] = False
+
+            # Check if agent made minimal assumptions (few bookings without info)
+            if criteria.get("minimal_assumptions"):
+                flights = output.get("flights", [])
+                hotels = output.get("hotels", [])
+                activities = output.get("activities", [])
+
+                # Good: Agent returns 0-1 items (not making assumptions)
+                # Bad: Agent returns multiple items (making assumptions about dates, origin, etc.)
+                total_items = len(flights) + len(hotels) + len(activities)
+
+                if total_items <= 1:
+                    met_constraints += 1
+                    details["minimal_assumptions"] = True
+                    details["items_returned"] = total_items
+                else:
+                    details["minimal_assumptions"] = False
+                    details["items_returned"] = total_items
+
     score = met_constraints / total_constraints if total_constraints > 0 else 0.0
     details["met_constraints"] = met_constraints
     details["total_constraints"] = total_constraints
@@ -305,11 +761,13 @@ def calculate_constraint_satisfaction(
 
 def calculate_budget_efficiency(
     agent_output: dict,
-    constraint_details: dict
+    constraint_details: dict,
+    task: BenchmarkTask = None
 ) -> tuple[float, dict]:
     """
     Calculate Budget Efficiency score (0.0 - 1.0).
     Formula: 1.0 - ((agent_cost - optimal_cost) / budget)
+    Uses task.constraints["max_budget"] if specified, otherwise uses default generous budget.
     """
     output = agent_output.get("output", {})
     details = {}
@@ -321,8 +779,13 @@ def calculate_budget_efficiency(
     optimal_cost = optimal_price if optimal_price is not None else agent_cost
     details["optimal_cost"] = optimal_cost
 
-    # generous budget for easy tasks
-    budget = max(optimal_cost * 10, 5000) if optimal_cost is not None and optimal_cost > 0 else 5000
+    # Use task's budget constraint if specified, otherwise use generous default
+    if task and task.constraints.get("max_budget"):
+        budget = task.constraints.get("max_budget")
+        details["budget_source"] = "task_constraint"
+    else:
+        budget = max(optimal_cost * 10, 5000) if optimal_cost is not None and optimal_cost > 0 else 5000
+        details["budget_source"] = "default_generous"
     details["budget"] = budget
 
     if agent_cost > budget:
@@ -399,7 +862,7 @@ def evaluate_task(task: BenchmarkTask, agent_output: dict, success_threshold: fl
     """Evaluate a single task and return scores."""
 
     cs_score, cs_details = calculate_constraint_satisfaction(task, agent_output)
-    be_score, be_details = calculate_budget_efficiency(agent_output, cs_details)
+    be_score, be_details = calculate_budget_efficiency(agent_output, cs_details, task)
     ls_score, ls_details = calculate_logistics_score(agent_output)
 
     # Calculate composite evaluation score (paper's headline metric)
@@ -431,7 +894,7 @@ def evaluate_task(task: BenchmarkTask, agent_output: dict, success_threshold: fl
 def run_benchmark(tasks: list[BenchmarkTask] = None, verbose: bool = True, num_runs: int = 3) -> dict:
     """Run benchmark on all tasks and return results."""
     if tasks is None:
-        tasks = EASY_TASKS
+        tasks = EASY_TASKS + MEDIUM_TASKS + HARD_TASKS
 
     # Verify agent is using the correct database
     if verbose:
