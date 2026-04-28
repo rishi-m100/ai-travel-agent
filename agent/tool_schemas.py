@@ -11,6 +11,7 @@ TOOL_SCHEMAS = [
                 "max_price": {"type": "number", "description": "Optional maximum price in USD"},
                 "cabin": {"type": "string", "enum": ["economy", "business", "first"]},
                 "nonstop_only": {"type": "boolean", "description": "If true, only return nonstop flights"},
+                "max_arrival_time": {"type": "string", "description": "Optional maximum arrival time in HH:MM format (24-hour). Only returns same-day arrivals before this time. Example: '14:00' for 2:00 PM"},
                 "max_results": {"type": "integer", "description": "Max results to return, default 10"},
             },
             "required": ["origin", "destination", "date"],

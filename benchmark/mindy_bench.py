@@ -111,7 +111,7 @@ EASY_TASKS = [
             "origin_city": "New York",
             "destination_city": "Los Angeles",
             "date": "2025-06-11",
-            "max_arrival_time": "14:00",
+            "max_arrival_time": "16:00",
             "origin": "JFK",
             "destination": "LAX"
         },
@@ -503,6 +503,9 @@ def calculate_constraint_satisfaction(
             hotels = output.get("hotels", [])
             activities = output.get("activities", [])
 
+            # Track which constraints have been checked to avoid double-counting
+            checked_constraints = set()
+
             # Check if required items exist
             if criteria.get("must_have_flight"):
                 if flights:
@@ -510,6 +513,7 @@ def calculate_constraint_satisfaction(
                     details["has_flight"] = True
                 else:
                     details["has_flight"] = False
+                checked_constraints.add("must_have_flight")
 
             if criteria.get("must_have_hotel"):
                 if hotels:
@@ -517,6 +521,7 @@ def calculate_constraint_satisfaction(
                     details["has_hotel"] = True
                 else:
                     details["has_hotel"] = False
+                checked_constraints.add("must_have_hotel")
 
             # Check hotel for multi-tasks
             if hotels:
@@ -528,23 +533,16 @@ def calculate_constraint_satisfaction(
 
                 if hotel_row:
                     # Correct city
-                    if criteria.get("correct_city"):
+                    if criteria.get("correct_city") and "correct_city" not in checked_constraints:
                         if hotel_row["city"] == task.ground_truth.get("city"):
                             met_constraints += 1
                             details["correct_city"] = True
                         else:
                             details["correct_city"] = False
-
-                    # Correct destination (for flight tasks)
-                    if criteria.get("correct_destination"):
-                        if hotel_row["city"] == task.ground_truth.get("destination_city"):
-                            met_constraints += 1
-                            details["correct_destination"] = True
-                        else:
-                            details["correct_destination"] = False
+                        checked_constraints.add("correct_city")
 
                     # Has required amenity (pool, etc.)
-                    if criteria.get("has_required_amenity"):
+                    if criteria.get("has_required_amenity") and "has_required_amenity" not in checked_constraints:
                         required_amenity = task.ground_truth.get("required_amenity", "")
                         amenities_str = hotel_row["amenities"] or ""
                         if required_amenity.lower() in amenities_str.lower():
@@ -552,9 +550,10 @@ def calculate_constraint_satisfaction(
                             details["has_required_amenity"] = True
                         else:
                             details["has_required_amenity"] = False
+                        checked_constraints.add("has_required_amenity")
 
                     # Date check for hotels
-                    if criteria.get("correct_dates"):
+                    if criteria.get("correct_dates") and "correct_dates" not in checked_constraints:
                         check_in = task.ground_truth.get("check_in")
                         check_out = task.ground_truth.get("check_out")
                         avail = conn.execute(
@@ -571,6 +570,7 @@ def calculate_constraint_satisfaction(
                             details["correct_dates"] = True
                         else:
                             details["correct_dates"] = False
+                        checked_constraints.add("correct_dates")
 
             # Check flight for multi-tasks
             if flights:
@@ -586,7 +586,8 @@ def calculate_constraint_satisfaction(
 
                 if flight_row:
                     # Correct destination (includes route check)
-                    if criteria.get("correct_destination"):
+                    # Only check once even if both flight and hotel have destination criteria
+                    if criteria.get("correct_destination") and "correct_destination" not in checked_constraints:
                         dest_city = task.ground_truth.get("destination_city")
                         origin_city = task.ground_truth.get("origin_city")
 
@@ -600,7 +601,12 @@ def calculate_constraint_satisfaction(
                             origin_match = (flight_row["origin_city"] == origin_city or
                                           flight_row["origin"] == task.ground_truth.get("origin"))
 
-                        if dest_match and origin_match:
+                        # Also verify hotel is in correct destination city if hotel exists
+                        hotel_dest_match = True
+                        if hotels and hotel_row:
+                            hotel_dest_match = hotel_row["city"] == dest_city
+
+                        if dest_match and origin_match and hotel_dest_match:
                             met_constraints += 1
                             details["correct_destination"] = True
                         else:
@@ -609,33 +615,39 @@ def calculate_constraint_satisfaction(
                                 details["wrong_origin"] = f"Expected {origin_city}, got {flight_row['origin_city']}"
                             if not dest_match:
                                 details["wrong_destination"] = f"Expected {dest_city}, got {flight_row['destination_city']}"
+                            if not hotel_dest_match:
+                                details["hotel_wrong_city"] = f"Hotel in {hotel_row['city']}, expected {dest_city}"
+                        checked_constraints.add("correct_destination")
 
                     # Correct date
-                    if criteria.get("correct_date"):
+                    if criteria.get("correct_date") and "correct_date" not in checked_constraints:
                         if flight_row["depart_date"] == task.ground_truth.get("date"):
                             met_constraints += 1
                             details["correct_date"] = True
                         else:
                             details["correct_date"] = False
+                        checked_constraints.add("correct_date")
 
                     # Time constraint
-                    if criteria.get("arrives_on_time"):
+                    if criteria.get("arrives_on_time") and "arrives_on_time" not in checked_constraints:
                         max_time = task.ground_truth.get("max_arrival_time")
                         if flight_row["arrive_time"] <= max_time:
                             met_constraints += 1
                             details["arrives_on_time"] = True
                         else:
                             details["arrives_on_time"] = False
+                        checked_constraints.add("arrives_on_time")
 
             # Check activities
-            if criteria.get("has_activities"):
+            if criteria.get("has_activities") and "has_activities" not in checked_constraints:
                 if activities:
                     met_constraints += 1
                     details["has_activities"] = True
                 else:
                     details["has_activities"] = False
+                checked_constraints.add("has_activities")
 
-            if criteria.get("has_min_activities"):
+            if criteria.get("has_min_activities") and "has_min_activities" not in checked_constraints:
                 min_activities = task.ground_truth.get("min_activities", 1)
                 if len(activities) >= min_activities:
                     met_constraints += 1
@@ -644,9 +656,10 @@ def calculate_constraint_satisfaction(
                 else:
                     details["has_min_activities"] = False
                     details["actual_activities"] = len(activities)
+                checked_constraints.add("has_min_activities")
 
             # Availability check for multi
-            if criteria.get("has_availability"):
+            if criteria.get("has_availability") and "has_availability" not in checked_constraints:
                 # This is already checked in hotel/flight sections above
                 # Just mark as true if we got this far
                 if (not criteria.get("must_have_hotel") or hotels) and (not criteria.get("must_have_flight") or flights):
@@ -654,9 +667,10 @@ def calculate_constraint_satisfaction(
                     details["has_availability"] = True
                 else:
                     details["has_availability"] = False
+                checked_constraints.add("has_availability")
 
             # Budget check for multi-type tasks
-            if criteria.get("within_budget"):
+            if criteria.get("within_budget") and "within_budget" not in checked_constraints:
                 total_cost = output.get("total_cost", 0)
                 max_budget = task.constraints.get("max_budget", float('inf'))
                 if total_cost <= max_budget:
@@ -668,9 +682,10 @@ def calculate_constraint_satisfaction(
                     details["within_budget"] = False
                     details["budget_used"] = total_cost
                     details["budget_limit"] = max_budget
+                checked_constraints.add("within_budget")
 
             # Long hotel stay check (for 2-week trips, etc.)
-            if criteria.get("long_hotel_stay"):
+            if criteria.get("long_hotel_stay") and "long_hotel_stay" not in checked_constraints:
                 expected_nights = task.ground_truth.get("hotel_nights", 0)
                 actual_nights = output.get("hotel_nights", 0)
                 # Allow some flexibility (within 1 night)
@@ -683,9 +698,10 @@ def calculate_constraint_satisfaction(
                     details["long_hotel_stay"] = False
                     details["expected_nights"] = expected_nights
                     details["actual_nights"] = actual_nights
+                checked_constraints.add("long_hotel_stay")
 
             # Multiple activities check (for long trips)
-            if criteria.get("has_multiple_activities"):
+            if criteria.get("has_multiple_activities") and "has_multiple_activities" not in checked_constraints:
                 min_activities = task.ground_truth.get("min_activities", 5)
                 actual_activities = len(activities)
                 if actual_activities >= min_activities:
@@ -697,6 +713,7 @@ def calculate_constraint_satisfaction(
                     details["has_multiple_activities"] = False
                     details["min_activities"] = min_activities
                     details["actual_activities"] = actual_activities
+                checked_constraints.add("has_multiple_activities")
 
         elif task.ground_truth["type"] == "clarification":
             # Clarification task - agent should ASK for more info, not make assumptions
@@ -753,8 +770,16 @@ def calculate_constraint_satisfaction(
                     details["items_returned"] = total_items
 
     score = met_constraints / total_constraints if total_constraints > 0 else 0.0
+
+    # CRITICAL: Cap score at 1.0 to prevent scoring bugs from breaking the 0-1 scale
+    score = min(1.0, max(0.0, score))
+
     details["met_constraints"] = met_constraints
     details["total_constraints"] = total_constraints
+
+    # Add warning if score would have exceeded 1.0 (indicates a bug)
+    if met_constraints > total_constraints:
+        details["warning"] = f"Bug detected: {met_constraints} constraints met but only {total_constraints} defined"
 
     return score, details
 
@@ -854,8 +879,18 @@ def calculate_evaluation_score(cs: float, be: float, ls: float) -> float:
     """
     Calculate composite Evaluation Score as defined in paper.
     S = (0.5 * CS) + (0.3 * BE) + (0.2 * LS)
+    All inputs should be in range [0.0, 1.0].
+    Output is capped at 1.0 to prevent scoring bugs.
     """
-    return (0.5 * cs) + (0.3 * be) + (0.2 * ls)
+    # Cap all inputs at 1.0 as safety measure
+    cs = min(1.0, max(0.0, cs))
+    be = min(1.0, max(0.0, be))
+    ls = min(1.0, max(0.0, ls))
+
+    score = (0.5 * cs) + (0.3 * be) + (0.2 * ls)
+
+    # Cap final score at 1.0
+    return min(1.0, max(0.0, score))
 
 
 def evaluate_task(task: BenchmarkTask, agent_output: dict, success_threshold: float = 0.75) -> TaskScore:

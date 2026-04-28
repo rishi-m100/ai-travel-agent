@@ -67,13 +67,13 @@ Performance is evaluated across four independent metrics:
 **Ground Truth:**
 - Route: New York (JFK) to Los Angeles (LAX)
 - Date: 2025-06-11
-- Max arrival time: 14:00 (2:00 PM)
+- Max arrival time: 16:00 (4:00 PM)
 
 **Success Criteria:**
 - Must have flight
 - Correct route
 - Correct date
-- Arrives on time (before 14:00)
+- Arrives on time (before 16:00)
 - Has availability
 
 #### easy_04: Find Non-Stop Flight
@@ -277,14 +277,9 @@ Pass threshold: 0.75
 # Run all tasks (4 easy + 4 medium + 2 hard = 10 tasks)
 python benchmark/mindy_bench.py
 
-# Run with specific number of iterations per task
-python benchmark/mindy_bench.py --runs 5
-
 # Save results to custom file
 python benchmark/mindy_bench.py --output my_results.json
 
-# Quiet mode (suppress verbose output)
-python benchmark/mindy_bench.py --quiet
 ```
 
 ### Viewing Results
@@ -320,5 +315,20 @@ The repository also includes an autonomous agent built to navigate the Mindy-Ben
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/rishi-m100/mindy.git](https://github.com/rishi-m100/mindy.git)
+   git clone https://github.com/rishi-m100/mindy.git
    cd mindy
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set up your API key:**
+   Create a `.env` file in the root directory:
+   ```bash
+   ANTHROPIC_API_KEY=your_api_key_here
+   ```
+
+4. **Run the benchmark:**
+   See the [Running the Benchmark](#running-the-benchmark) section above for detailed instructions on running benchmarks and viewing results.

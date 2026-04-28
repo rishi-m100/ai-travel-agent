@@ -99,6 +99,7 @@ def search_flights(
     max_price: float | None = None,
     cabin: str | None = None,
     nonstop_only: bool = False,
+    max_arrival_time: str | None = None,
     max_results: int = 10,
 ) -> list[dict]:
     query = """
@@ -116,7 +117,7 @@ def search_flights(
           AND f.depart_date = ?
     """
     # ai assistance to write the above SQL query
-    
+
     origin      = _norm(origin)
     destination = _norm(destination)
     params = [origin, origin, destination, destination, date]
@@ -131,6 +132,13 @@ def search_flights(
 
     if nonstop_only:
         query += " AND f.stops = 0"
+
+    if max_arrival_time is not None:
+        # Filter for flights arriving before the specified time on the same day
+        # Only include flights where arrive_time is earlier than depart_time (same day arrivals)
+        # or where arrive_time < max_arrival_time AND arrive_time < depart_time (overnight but early arrival)
+        query += " AND f.arrive_time <= ? AND f.arrive_time >= f.depart_time"
+        params.append(max_arrival_time)
 
     query += " ORDER BY f.price ASC LIMIT ?"
     params.append(max_results)
